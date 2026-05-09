@@ -186,10 +186,46 @@ input[type="file"] {
   color: #e8eef7;
 }
 
+.schedule-main-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-free-toggle {
+  align-self: flex-start;
+}
+
+.schedule-time-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.been-extra-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 8px;
+}
+
+.been-extra-row > label:last-child {
+  grid-column: 1 / -1;
+}
+
 .slim-top {
   margin-top: 10px;
 }
 
 .photo-card-actions {
   align-items: center;
+}
+
+@media (max-width: 680px) {
+  .schedule-time-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .been-extra-row {
+    grid-template-columns: 1fr;
+  }
 }

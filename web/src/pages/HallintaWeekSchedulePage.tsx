@@ -328,8 +328,8 @@ export default function HallintaWeekSchedulePage() {
                     </>
                   ) : (
                     <>
-                      <div className="row time-row">
-                        <label className="row muted" style={{ gap: 6 }}>
+                      <div className="schedule-main-row">
+                        <label className="row muted schedule-free-toggle" style={{ gap: 6 }}>
                           <input
                             type="checkbox"
                             checked={Boolean(drafts[iso]?.manualFree)}
@@ -345,43 +345,45 @@ export default function HallintaWeekSchedulePage() {
                           />
                           Vapaa
                         </label>
-                        <label className="muted small-label">
-                          Aloitus
-                          <input
-                            type="time"
-                            value={drafts[iso]?.start ?? ""}
-                            disabled={Boolean(drafts[iso]?.manualFree)}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [iso]: {
-                                  ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
-                                  start: e.target.value,
-                                },
-                              }))
-                            }
-                          />
-                        </label>
-                        <label className="muted small-label">
-                          Lopetus
-                          <input
-                            type="time"
-                            value={drafts[iso]?.end ?? ""}
-                            disabled={Boolean(drafts[iso]?.manualFree)}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [iso]: {
-                                  ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
-                                  end: e.target.value,
-                                },
-                              }))
-                            }
-                          />
-                        </label>
+                        <div className="row time-row schedule-time-pair">
+                          <label className="muted small-label">
+                            Aloitus
+                            <input
+                              type="time"
+                              value={drafts[iso]?.start ?? ""}
+                              disabled={Boolean(drafts[iso]?.manualFree)}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                    start: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="muted small-label">
+                            Lopetus
+                            <input
+                              type="time"
+                              value={drafts[iso]?.end ?? ""}
+                              disabled={Boolean(drafts[iso]?.manualFree)}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                    end: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
                       </div>
                       {personSlug === "been" && (
-                        <div className="row time-row" style={{ marginTop: 8 }}>
+                        <div className="been-extra-row" style={{ marginTop: 10 }}>
                           <label className="muted small-label">
                             Treenit / muu
                             <input
