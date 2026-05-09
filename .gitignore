@@ -1,0 +1,16 @@
+node_modules
+dist
+.DS_Store
+
+# Web
+web/node_modules
+web/dist
+web/.env
+
+# Android
+android-tv/.gradle
+android-tv/**/build
+android-tv/local.properties
+
+# Supabase
+supabase/.temp

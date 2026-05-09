@@ -1,0 +1,18 @@
+# Minimal Supabase CLI config – adjust project_id when linking remote.
+
+project_id = "kotinaytto"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[functions.sync-rss]
+verify_jwt = false
+
+[functions.sync-weather]
+verify_jwt = false
+
+[functions.photo-ingest]
+verify_jwt = false

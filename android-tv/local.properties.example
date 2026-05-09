@@ -1,0 +1,7 @@
+## Android SDK + Supabase (kopioi nimellä local.properties)
+
+sdk.dir=/Users/oma/Library/Android/sdk
+
+supabase.url=https://xxxx.supabase.co
+supabase.anonKey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+family.readToken=
