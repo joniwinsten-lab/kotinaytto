@@ -14,7 +14,7 @@ export default function HallintaHubPage() {
 
   const logout = () => {
     clearEditorSession();
-    window.location.href = "/";
+    window.location.href = "https://joniwinsten-lab.github.io/kotinaytto/";
   };
 
   return (
