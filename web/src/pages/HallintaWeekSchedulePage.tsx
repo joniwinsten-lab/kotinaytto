@@ -66,7 +66,7 @@ export default function HallintaWeekSchedulePage() {
   const dates = useMemo(() => helDateRange8(), []);
 
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, { start: string; end: string; legacy: string }>>({});
+  const [drafts, setDrafts] = useState<Record<string, { start: string; end: string; legacy: string; manualFree: boolean }>>({});
   const [error, setError] = useState<string | null>(null);
   const [busyDate, setBusyDate] = useState<string | null>(null);
 
@@ -87,7 +87,7 @@ export default function HallintaWeekSchedulePage() {
       rows.forEach((e) => {
         if (e.person_slug === personSlug) map.set(e.entry_date, e);
       });
-      const next: Record<string, { start: string; end: string; legacy: string }> = {};
+      const next: Record<string, { start: string; end: string; legacy: string; manualFree: boolean }> = {};
       const defaults = loadBeenDefaults();
       for (const iso of dates) {
         const row = map.get(iso);
@@ -95,7 +95,7 @@ export default function HallintaWeekSchedulePage() {
         if (free) continue;
         const parsed = parseTitle(row?.title ?? "");
         if (parsed.kind === "free") {
-          next[iso] = { start: "", end: "", legacy: "" };
+          next[iso] = { start: "", end: "", legacy: "", manualFree: true };
         } else if (parsed.kind === "shift") {
           let s = toTimeInput(parsed.a);
           let e = toTimeInput(parsed.b);
@@ -103,9 +103,9 @@ export default function HallintaWeekSchedulePage() {
             s = toTimeInput(defaults.start);
             e = toTimeInput(defaults.end);
           }
-          next[iso] = { start: s, end: e, legacy: "" };
+          next[iso] = { start: s, end: e, legacy: "", manualFree: false };
         } else {
-          next[iso] = { start: "", end: "", legacy: parsed.text };
+          next[iso] = { start: "", end: "", legacy: parsed.text, manualFree: false };
         }
       }
       setDrafts(next);
@@ -169,9 +169,11 @@ export default function HallintaWeekSchedulePage() {
     setError(null);
     try {
       const row = byDate.get(iso);
-      const d = drafts[iso] ?? { start: "", end: "", legacy: "" };
+      const d = drafts[iso] ?? { start: "", end: "", legacy: "", manualFree: false };
       let title: string;
-      if (d.legacy.trim()) {
+      if (d.manualFree) {
+        title = "Vapaa";
+      } else if (d.legacy.trim()) {
         title = d.legacy.trim();
       } else {
         const s = d.start.trim();
@@ -243,30 +245,69 @@ export default function HallintaWeekSchedulePage() {
               {!free && (
                 <>
                   {drafts[iso]?.legacy ? (
-                    <label className="muted small-label">
-                      Merkintä (vanha muoto)
-                      <input
-                        type="text"
-                        value={drafts[iso]?.legacy ?? ""}
-                        onChange={(e) =>
-                          setDrafts((prev) => ({
-                            ...prev,
-                            [iso]: { ...(prev[iso] ?? { start: "", end: "", legacy: "" }), legacy: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
+                    <>
+                      <label className="row muted" style={{ gap: 6 }}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(drafts[iso]?.manualFree)}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [iso]: {
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                manualFree: e.target.checked,
+                              },
+                            }))
+                          }
+                        />
+                        Vapaa
+                      </label>
+                      <label className="muted small-label">
+                        Merkintä (vanha muoto)
+                        <input
+                          type="text"
+                          value={drafts[iso]?.legacy ?? ""}
+                          disabled={Boolean(drafts[iso]?.manualFree)}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [iso]: { ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }), legacy: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                    </>
                   ) : (
                     <div className="row time-row">
+                      <label className="row muted" style={{ gap: 6 }}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(drafts[iso]?.manualFree)}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [iso]: {
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                manualFree: e.target.checked,
+                              },
+                            }))
+                          }
+                        />
+                        Vapaa
+                      </label>
                       <label className="muted small-label">
                         Aloitus
                         <input
                           type="time"
                           value={drafts[iso]?.start ?? ""}
+                          disabled={Boolean(drafts[iso]?.manualFree)}
                           onChange={(e) =>
                             setDrafts((prev) => ({
                               ...prev,
-                              [iso]: { ...(prev[iso] ?? { start: "", end: "", legacy: "" }), start: e.target.value },
+                              [iso]: {
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                start: e.target.value,
+                              },
                             }))
                           }
                         />
@@ -276,10 +317,14 @@ export default function HallintaWeekSchedulePage() {
                         <input
                           type="time"
                           value={drafts[iso]?.end ?? ""}
+                          disabled={Boolean(drafts[iso]?.manualFree)}
                           onChange={(e) =>
                             setDrafts((prev) => ({
                               ...prev,
-                              [iso]: { ...(prev[iso] ?? { start: "", end: "", legacy: "" }), end: e.target.value },
+                              [iso]: {
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                end: e.target.value,
+                              },
                             }))
                           }
                         />

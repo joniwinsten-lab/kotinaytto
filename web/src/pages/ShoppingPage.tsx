@@ -60,16 +60,24 @@ export default function ShoppingPage() {
     () => [...items].sort((a, b) => (a.sort_order - b.sort_order) || a.title.localeCompare(b.title)),
     [items],
   );
+  const autoAddedBy = useMemo(() => {
+    if (!capsCtx) return null;
+    if (capsCtx.personSlug === "been") return "Bee";
+    if (capsCtx.personSlug === "maija") return "Maija";
+    if (capsCtx.personSlug === "joni") return "Joni";
+    return null;
+  }, [capsCtx]);
 
   const add = async () => {
     if (!supabase || !canEdit) return;
     const t = title.trim();
     if (!t) return;
     setError(null);
+    const manualAddedBy = addedBy.trim() || null;
     const { error: e } = await supabase.rpc("shopping_add", {
       p_secret: token,
       p_title: t,
-      p_added_by: addedBy.trim() || null,
+      p_added_by: autoAddedBy ?? manualAddedBy,
     });
     if (e) setError(e.message);
     setTitle("");
@@ -121,13 +129,21 @@ export default function ShoppingPage() {
         <div className="row" style={{ marginBottom: 12 }}>
           <input type="text" placeholder="Lisää tuote…" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
+        {autoAddedBy ? (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Lisätään nimellä: <strong>{autoAddedBy}</strong>
+          </p>
+        ) : (
+          <div className="row" style={{ marginBottom: 12 }}>
+            <input
+              type="text"
+              placeholder="Kuka lisäsi (valinnainen)"
+              value={addedBy}
+              onChange={(e) => setAddedBy(e.target.value)}
+            />
+          </div>
+        )}
         <div className="row" style={{ marginBottom: 12 }}>
-          <input
-            type="text"
-            placeholder="Kuka lisäsi (valinnainen)"
-            value={addedBy}
-            onChange={(e) => setAddedBy(e.target.value)}
-          />
           <button type="button" onClick={() => void add()}>
             Lisää
           </button>
