@@ -64,6 +64,7 @@ import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 import java.util.Locale
 import kotlin.random.Random
+import fi.kotinaytto.tv.data.todaySunTimesMinutes
 
 @Composable
 fun DashboardScreen(vm: DashboardViewModel) {
@@ -85,9 +86,11 @@ fun DashboardScreen(vm: DashboardViewModel) {
 @Composable
 internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
     val photos = state.photos
-    val helsinkiHour = ZonedDateTime.now(ZoneId.of("Europe/Helsinki")).hour
+    val helsinki = ZoneId.of("Europe/Helsinki")
+    val helsinkiHour = ZonedDateTime.now(helsinki).hour
     val weatherCode = state.weatherPayload?.currentWeatherCode()
     val isDay = state.weatherPayload?.currentIsDay() ?: (helsinkiHour in 7..20)
+    val sunTimes = state.weatherPayload?.todaySunTimesMinutes(helsinki)
 
     Box(modifier = Modifier.fillMaxSize()) {
         val hasTicker = state.news.isNotEmpty()
@@ -96,6 +99,8 @@ internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
             photo = photos.getOrNull(photoIndex % (photos.size.coerceAtLeast(1))),
             weatherCode = weatherCode,
             isDay = isDay,
+            sunriseMinute = sunTimes?.sunriseMinute,
+            sunsetMinute = sunTimes?.sunsetMinute,
         )
 
         Box(

@@ -37,6 +37,11 @@ data class SunClockStrings(
     val sunsetHm: String,
 )
 
+data class SunTimesMinutes(
+    val sunriseMinute: Int,
+    val sunsetMinute: Int,
+)
+
 private fun parseOpenMeteoDailyInstant(s: String, zone: ZoneId): ZonedDateTime? = runCatching {
     when {
         s.endsWith("Z") -> Instant.parse(s).atZone(zone)
@@ -55,6 +60,21 @@ fun JsonObject.todaySunClock(zone: ZoneId): SunClockStrings? {
     val zs = parseOpenMeteoDailyInstant(ss, zone) ?: return null
     val tf = DateTimeFormatter.ofPattern("HH:mm")
     return SunClockStrings(zr.format(tf), zs.format(tf))
+}
+
+/** Open-Meteo `daily.sunrise` / `daily.sunset` tämän päivän minuutteina (00:00 alusta). */
+fun JsonObject.todaySunTimesMinutes(zone: ZoneId): SunTimesMinutes? {
+    val daily = this["daily"]?.jsonObject ?: return null
+    val sunriseArr = daily["sunrise"]?.jsonArray ?: return null
+    val sunsetArr = daily["sunset"]?.jsonArray ?: return null
+    val sr = (sunriseArr.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return null
+    val ss = (sunsetArr.getOrNull(0) as? JsonPrimitive)?.contentOrNull ?: return null
+    val zr = parseOpenMeteoDailyInstant(sr, zone) ?: return null
+    val zs = parseOpenMeteoDailyInstant(ss, zone) ?: return null
+    return SunTimesMinutes(
+        sunriseMinute = zr.hour * 60 + zr.minute,
+        sunsetMinute = zs.hour * 60 + zs.minute,
+    )
 }
 
 fun weatherDescriptionFi(code: Int?): String = when (code) {

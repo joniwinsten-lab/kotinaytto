@@ -26,8 +26,10 @@ import coil.request.ImageRequest
 import fi.kotinaytto.tv.data.PhotoDto
 import fi.kotinaytto.tv.ui.familyPhotoPublicUrl
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.time.ZonedDateTime
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
@@ -35,14 +37,18 @@ fun WeatherLandscapeBackdrop(
     photo: PhotoDto?,
     weatherCode: Int?,
     isDay: Boolean,
+    sunriseMinute: Int? = null,
+    sunsetMinute: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     val now = ZonedDateTime.now(ZoneId.of("Europe/Helsinki"))
-    val helsinkiHour = now.hour
     val dayMinute = now.hour * 60 + now.minute
+    val sr = sunriseMinute ?: 6 * 60
+    val ss = sunsetMinute ?: 18 * 60
+    val cloudiness = cloudinessFromCode(weatherCode)
 
-    val timeBrush = timeOfDayBrush(helsinkiHour)
-    val weatherTint = weatherTintColor(weatherCode, isDay)
+    val timeBrush = timeOfDayBrush(dayMinute, sr, ss)
+    val weatherTint = weatherTintColor(weatherCode, isDay, cloudiness)
 
     val infinite = rememberInfiniteTransition(label = "sky")
     val cloudDrift by infinite.animateFloat(
@@ -72,8 +78,16 @@ fun WeatherLandscapeBackdrop(
         )
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawSkyBodies(dayMinute, size.width, size.height)
-            drawCloudLayer(size.width, size.height, cloudDrift)
+            drawSkyBodies(
+                dayMinute = dayMinute,
+                sunrise = sr,
+                sunset = ss,
+                weatherCode = weatherCode,
+                width = size.width,
+                height = size.height,
+                now = now,
+            )
+            drawCloudLayer(size.width, size.height, cloudDrift, cloudiness)
         }
 
         Box(
@@ -107,36 +121,34 @@ fun WeatherLandscapeBackdrop(
     }
 }
 
-private fun timeOfDayBrush(hour: Int): Brush {
-    val (c0, c1) = when (hour) {
-        in 5..8 -> Color(0xFF1A237E) to Color(0xFFFFB74D)
-        in 9..15 -> Color(0xFF0D47A1) to Color(0xFF64B5F6)
-        in 16..20 -> Color(0xFF311B92) to Color(0xFFFF8A65)
-        in 21..23, 0 -> Color(0xFF020617) to Color(0xFF1E3A5F)
-        else -> Color(0xFF020617) to Color(0xFF263238)
-    }
+private fun timeOfDayBrush(dayMinute: Int, sunrise: Int, sunset: Int): Brush {
+    val daylight = daylightStrength(dayMinute, sunrise, sunset)
+    val c0 = lerpColor(Color(0xFF020617), Color(0xFF0D47A1), daylight)
+    val c1 = lerpColor(Color(0xFF263238), Color(0xFF64B5F6), daylight)
     return Brush.verticalGradient(listOf(c0, c1))
 }
 
-private fun weatherTintColor(code: Int?, isDay: Boolean): Color {
+private fun weatherTintColor(code: Int?, isDay: Boolean, cloudiness: Float): Color {
     val c = code ?: return Color.Transparent
-    val alpha = if (isDay) 0.18f else 0.28f
+    val alpha = if (isDay) 0.12f + cloudiness * 0.12f else 0.2f + cloudiness * 0.16f
     return when (c) {
         0, 1 -> Color(0xFFFFF59D).copy(alpha = alpha * 0.6f)
-        in 51..67, in 80..82 -> Color(0xFF546E7A).copy(alpha = alpha)
-        in 71..77, in 85..86 -> Color(0xFFE3F2FD).copy(alpha = alpha)
-        in 95..99 -> Color(0xFF5C6BC0).copy(alpha = alpha * 1.2f)
+        in 51..67, in 80..82 -> Color(0xFF455A64).copy(alpha = alpha)
+        in 71..77, in 85..86 -> Color(0xFFCFD8DC).copy(alpha = alpha)
+        in 95..99 -> Color(0xFF5C6BC0).copy(alpha = alpha * 1.25f)
         else -> Color(0xFF37474F).copy(alpha = alpha * 0.5f)
     }
 }
 
 private fun DrawScope.drawSkyBodies(
     dayMinute: Int,
+    sunrise: Int,
+    sunset: Int,
+    weatherCode: Int?,
     width: Float,
     height: Float,
+    now: ZonedDateTime,
 ) {
-    val sunrise = 6 * 60
-    val sunset = 18 * 60
     val (progress, isSun) = when {
         dayMinute in sunrise..sunset -> {
             val p = (dayMinute - sunrise).toFloat() / (sunset - sunrise).coerceAtLeast(1)
@@ -154,30 +166,35 @@ private fun DrawScope.drawSkyBodies(
     val arc = sin(progress * PI.toFloat())
     val cy = height * (0.18f + 0.12f * arc)
 
+    val cloudiness = cloudinessFromCode(weatherCode)
     if (isSun) {
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFFFFFDE7), Color(0x40FFCA28)),
+                colors = listOf(Color(0xFFFFFDE7), Color(0x66FFCA28)),
                 center = Offset(cx, cy),
                 radius = height * 0.09f,
             ),
-            radius = height * 0.065f,
+            radius = height * (0.06f - cloudiness * 0.01f),
             center = Offset(cx, cy),
         )
     } else {
+        val phase = moonPhase01(now)
+        val r = height * 0.045f
+        val center = Offset(cx, cy)
         drawCircle(
-            color = Color(0xFFECEFF1).copy(alpha = 0.92f),
-            radius = height * 0.045f,
-            center = Offset(cx, cy),
+            color = Color(0xFFECEFF1).copy(alpha = 0.96f),
+            radius = r,
+            center = center,
         )
-        drawArc(
-            color = Color(0x3306070F),
-            startAngle = -40f,
-            sweepAngle = 260f,
-            useCenter = false,
-            topLeft = Offset(cx - height * 0.045f, cy - height * 0.045f),
-            size = Size(height * 0.09f, height * 0.09f),
-            style = Stroke(width = height * 0.006f),
+        // Kuun vaihe: peitetään osa kiekosta, jolloin syntyy sirppi / puolikuu / lähes täysikuu.
+        val lit = (0.5f - kotlin.math.abs(phase - 0.5f)) * 2f // 0..1
+        val cover = (1f - lit) * r * 2f
+        val waxing = phase < 0.5f
+        val coverCx = if (waxing) center.x - (r - cover / 2f) else center.x + (r - cover / 2f)
+        drawCircle(
+            color = Color(0xFF020617),
+            radius = r,
+            center = Offset(coverCx, center.y),
         )
     }
 }
@@ -186,15 +203,18 @@ private fun DrawScope.drawCloudLayer(
     width: Float,
     height: Float,
     drift: Float,
+    cloudiness: Float,
 ) {
     val shift = drift * width * 1.2f
-    val bases = listOf(0.12f to 0.22f, 0.42f to 0.18f, 0.72f to 0.26f, 0.28f to 0.34f)
-    for ((bx, by) in bases) {
+    val bases = listOf(0.08f to 0.2f, 0.24f to 0.25f, 0.42f to 0.18f, 0.58f to 0.3f, 0.72f to 0.24f, 0.86f to 0.34f)
+    val count = (2 + cloudiness * 4f).toInt().coerceAtMost(bases.size)
+    val alphaBase = 0.16f + cloudiness * 0.34f
+    for ((bx, by) in bases.take(count)) {
         val x = ((bx * width + shift) % (width * 1.1f)) - width * 0.05f
         val y = by * height
-        cloudBlob(x, y, height * 0.045f, Color.White.copy(alpha = 0.35f))
-        cloudBlob(x + height * 0.06f, y + height * 0.012f, height * 0.038f, Color.White.copy(alpha = 0.28f))
-        cloudBlob(x - height * 0.05f, y + height * 0.018f, height * 0.032f, Color.White.copy(alpha = 0.22f))
+        cloudBlob(x, y, height * 0.045f, Color.White.copy(alpha = alphaBase))
+        cloudBlob(x + height * 0.06f, y + height * 0.012f, height * 0.038f, Color.White.copy(alpha = alphaBase * 0.82f))
+        cloudBlob(x - height * 0.05f, y + height * 0.018f, height * 0.032f, Color.White.copy(alpha = alphaBase * 0.68f))
     }
 }
 
@@ -207,6 +227,47 @@ private fun DrawScope.cloudBlob(
     drawCircle(color = color, radius = r * 1.1f, center = Offset(cx, cy))
     drawCircle(color = color, radius = r, center = Offset(cx + r * 0.9f, cy))
     drawCircle(color = color, radius = r * 0.85f, center = Offset(cx - r * 0.85f, cy))
+}
+
+private fun cloudinessFromCode(code: Int?): Float = when (code ?: -1) {
+    0 -> 0.1f
+    1 -> 0.28f
+    2 -> 0.45f
+    3, in 45..48 -> 0.75f
+    in 51..67, in 80..82 -> 0.85f
+    in 71..77, in 85..86 -> 0.88f
+    in 95..99 -> 0.92f
+    else -> 0.6f
+}
+
+private fun daylightStrength(dayMinute: Int, sunrise: Int, sunset: Int): Float {
+    val riseStart = sunrise - 45
+    val setEnd = sunset + 45
+    return when {
+        dayMinute <= riseStart || dayMinute >= setEnd -> 0f
+        dayMinute in sunrise..sunset -> 1f
+        dayMinute < sunrise -> ((dayMinute - riseStart).toFloat() / (sunrise - riseStart).coerceAtLeast(1)).coerceIn(0f, 1f)
+        else -> (1f - (dayMinute - sunset).toFloat() / (setEnd - sunset).coerceAtLeast(1)).coerceIn(0f, 1f)
+    }
+}
+
+private fun lerpColor(a: Color, b: Color, t: Float): Color {
+    val x = t.coerceIn(0f, 1f)
+    return Color(
+        red = a.red + (b.red - a.red) * x,
+        green = a.green + (b.green - a.green) * x,
+        blue = a.blue + (b.blue - a.blue) * x,
+        alpha = a.alpha + (b.alpha - a.alpha) * x,
+    )
+}
+
+/** 0=new moon, 0.5=full moon, 1->new moon. */
+private fun moonPhase01(now: ZonedDateTime): Float {
+    val knownNewMoon = ZonedDateTime.parse("2000-01-06T18:14:00Z")
+    val days = ChronoUnit.SECONDS.between(knownNewMoon, now.withZoneSameInstant(ZoneId.of("UTC"))) / 86_400.0
+    val synodic = 29.530588853
+    val cycle = (days % synodic + synodic) % synodic
+    return (cycle / synodic).toFloat()
 }
 
 private fun DrawScope.drawWeatherParticles(

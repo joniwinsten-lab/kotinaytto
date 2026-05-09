@@ -37,6 +37,7 @@ import fi.kotinaytto.tv.data.hourlyForecastChips
 import fi.kotinaytto.tv.data.formatScheduleLineForTv
 import fi.kotinaytto.tv.data.toDashboardState
 import fi.kotinaytto.tv.data.todaySunClock
+import fi.kotinaytto.tv.data.todaySunTimesMinutes
 import fi.kotinaytto.tv.data.weatherDescriptionFi
 import fi.kotinaytto.tv.ui.scene.WeatherLandscapeBackdrop
 import fi.kotinaytto.tv.ui.weather.WeatherConditionIcon
@@ -102,17 +103,21 @@ fun DreamScreensaverContent() {
 @Composable
 internal fun DreamScreensaverBody(state: DashboardState, photoIndex: Int) {
     val photos = state.photos
-    val helsinkiHour = ZonedDateTime.now(ZoneId.of("Europe/Helsinki")).hour
+    val helsinki = ZoneId.of("Europe/Helsinki")
+    val helsinkiHour = ZonedDateTime.now(helsinki).hour
     val payload = state.weatherPayload
     val weatherCode = payload?.currentWeatherCode()
     val isDay = payload?.currentIsDay() ?: (helsinkiHour in 7..20)
     val temp = payload?.currentTemperature()
+    val sunTimes = payload?.todaySunTimesMinutes(helsinki)
 
     Box(modifier = Modifier.fillMaxSize()) {
         WeatherLandscapeBackdrop(
             photo = photos.getOrNull(photoIndex % (photos.size.coerceAtLeast(1))),
             weatherCode = weatherCode,
             isDay = isDay,
+            sunriseMinute = sunTimes?.sunriseMinute,
+            sunsetMinute = sunTimes?.sunsetMinute,
         )
 
         Box(
@@ -142,7 +147,6 @@ internal fun DreamScreensaverBody(state: DashboardState, photoIndex: Int) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom,
             ) {
-                val helsinki = ZoneId.of("Europe/Helsinki")
                 ClockColumn(
                     subtitle = state.family?.name,
                     weatherPayload = payload,
