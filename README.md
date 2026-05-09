@@ -20,7 +20,8 @@ Käytä **omaan Kodinäyttöön** tarkoitettua Supabase-projektia.
 3. GitHub → repo → **Settings** → **Secrets and variables** → **Actions**:
    - `SUPABASE_ACCESS_TOKEN` – [Access Tokens](https://supabase.com/dashboard/account/tokens) (tili)
    - `SUPABASE_PROJECT_REF` – Reference ID (Dashboard → Project Settings → General)
-   - *(valinnainen)* `SUPABASE_DB_PASSWORD` – vain jos CI-linkki tai `db push` vaatii; alla selitys
+   - *(GitHub Actions – sisältösynk)* **`SUPABASE_SERVICE_ROLE_KEY`** – API → **service_role** (vain secretiin; käytössä workflowssa [Supabase sync content](.github/workflows/supabase-sync-content.yml))
+   - *(valinnainen)* `SUPABASE_DB_PASSWORD` – vain jos `db push` vaatii; alla selitys
 
 **Database password -kohdasta:** Supabase **ei näytä** Postgres-salasanaa uudelleen projektin luonnin jälkeen (turvallisuus). Voit vain **Reset database password** (Project Settings → Database) ja silloin saat **uuden** salasanan kerran kopioitavaksi. Sitä ei voi “hakea” ulkopuolelta ilman sinun kirjautumistasi.
 
@@ -42,19 +43,28 @@ supabase functions deploy photo-ingest
 
 ## 1. Supabase (ajon jälkeen)
 
-1. Jos käytit vain SQL-editoria migraatioihin, deployaa funktiot CLI:llä tai aja GitHub Actions **Supabase deploy**.
-2. Edge Functions -salaisuudet (Dashboard → Edge Functions → Secrets): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (yleensä automaattisesti).
-3. Hae tokenit SQL:stä kerran:
-   - `select read_token from families limit 1;` → TV + `VITE_FAMILY_READ_TOKEN` (vain jos tarvitset webissä dashboard-RPC:tä).
-   - `select slug, secret from editor_tokens order by slug;` → jaetut muokkauslinkit (`VITE_TOKEN_SHARED`, `VITE_TOKEN_BEEN`, …).
+### Seuraavat askeleet tästä eteenpäin
+
+1. Varmista että **Supabase deploy** -workflow on ajettu vihreäksi (`Actions`).
+2. Lisää GitHubissa secret **`SUPABASE_SERVICE_ROLE_KEY`**: Supabase → **Project Settings** → **API** → **service_role** (älä koskaan commitoi / chattiin).
+3. **Actions** → **Supabase sync content** → **Run workflow** (täyttää uutiset ja sään kerran). Sama workflow ajaa myös päivittäisen cronin (`news_items`, `weather_cache`).
+4. SQL Editorissa hae tokenit talteen:
+   - `select read_token from families limit 1;` → Android `family.readToken` + tarvittaessa `VITE_FAMILY_READ_TOKEN`
+   - `select slug, secret from editor_tokens order by slug;` → web `.env`: `VITE_TOKEN_*`
+5. *(Valinnainen)* Päivitä koti sääkartalle:  
+   `update families set home_latitude = 60.xx, home_longitude = 24.xx where id = (select id from families limit 1);`
+
+*(Edge Functions saavat `SUPABASE_URL` ja `SUPABASE_SERVICE_ROLE_KEY` automaattisesti Supabasen hostissa deployn jälkeen.)*
 
 ### Ajastukset (RSS + sää)
 
-Kutsu funktioita säännöllisesti (GitHub Actions, cron, tai Supabase Scheduler):
+Repo sisältää workflow **[Supabase sync content](.github/workflows/supabase-sync-content.yml)** (manuaali + päivittäinen cron). Tarvitset GitHub Secretin **`SUPABASE_SERVICE_ROLE_KEY`** (ja jo olemassa olevan `SUPABASE_PROJECT_REF`).
+
+Paikallinen curl (vain esimerkki – älä commitoi avaimia):
 
 ```bash
-export PROJECT="https://xxxx.supabase.co"
-export SERVICE_ROLE="eyJ..." # service role vain palvelimelle
+export PROJECT="https://<PROJECT_REF>.supabase.co"
+export SERVICE_ROLE="..." # service_role vain palvelimelle / CI-secret
 
 curl -sS -X POST "$PROJECT/functions/v1/sync-rss" \
   -H "Authorization: Bearer $SERVICE_ROLE" \
@@ -64,8 +74,6 @@ curl -sS -X POST "$PROJECT/functions/v1/sync-weather" \
   -H "Authorization: Bearer $SERVICE_ROLE" \
   -H "apikey: $SERVICE_ROLE"
 ```
-
-Perheen sijainti säähän: päivitä `families.home_latitude`, `home_longitude` (oletus Helsinki).
 
 ## 2. Web (puhelin)
 

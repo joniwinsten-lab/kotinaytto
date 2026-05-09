@@ -1,0 +1,36 @@
+# Täyttää news_items ja weather_cache kutsumalla Edge Functions.
+#
+# Vaatii GitHub Secrets:
+#   SUPABASE_PROJECT_REF      (sama kuin deploy-workflowssa)
+#   SUPABASE_SERVICE_ROLE_KEY – Dashboard → Project Settings → API → service_role (ei koskaan committiin)
+
+name: Supabase sync content
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Päivittäin ~08:15 Suomen aikaa (UTC+2/+3); säätä cron tarvittaessa
+    - cron: "15 6 * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Verify secrets
+        run: |
+          test -n "$SUPABASE_PROJECT_REF" || { echo "Puuttuu SUPABASE_PROJECT_REF"; exit 1; }
+          test -n "$SERVICE_ROLE" || { echo "Puuttuu SUPABASE_SERVICE_ROLE_KEY (API → service_role)"; exit 1; }
+
+      - name: Call sync-rss and sync-weather
+        run: |
+          BASE="https://${SUPABASE_PROJECT_REF}.supabase.co"
+          curl -sfS -X POST "$BASE/functions/v1/sync-rss" \
+            -H "Authorization: Bearer $SERVICE_ROLE" \
+            -H "apikey: $SERVICE_ROLE"
+          curl -sfS -X POST "$BASE/functions/v1/sync-weather" \
+            -H "Authorization: Bearer $SERVICE_ROLE" \
+            -H "apikey: $SERVICE_ROLE"
+          echo "OK"
