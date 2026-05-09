@@ -37,7 +37,9 @@ fun NewsTickerBanner(
 ) {
     if (news.isEmpty()) return
     val blockText = remember(news) {
-        news.joinToString(separator = "     •     ") { it.title } + "     •     "
+        val uniq = news.distinctBy { "${it.source}::${it.title}".lowercase() }
+        val parts = if (uniq.isNotEmpty()) uniq else news
+        parts.joinToString(separator = "   ◆   ") { "${it.source}: ${it.title}" } + "   ◆   "
     }
     val style = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFECEFF1))
     val measurer = rememberTextMeasurer()
@@ -45,7 +47,8 @@ fun NewsTickerBanner(
         measurer.measure(AnnotatedString(blockText), style, maxLines = 1)
     }
     val segmentW = layout.size.width.toFloat().coerceAtLeast(1f)
-    val durationMs = (segmentW / 45f * 1000).toInt().coerceIn(12_000, 120_000)
+    // Hieman ripeämpi nopeus: pitkäkin syöte pysyy elävänä.
+    val durationMs = (segmentW / 58f * 1000).toInt().coerceIn(12_000, 220_000)
     val infiniteTransition = rememberInfiniteTransition(label = "newsTicker")
     val offset by infiniteTransition.animateFloat(
         initialValue = 0f,

@@ -20,7 +20,7 @@ async function parseRss(xml: string, source: string) {
   const items: { title: string; url?: string; published_at?: string }[] = [];
   const itemRegex = /<item[\s\S]*?<\/item>/gi;
   const blocks = xml.match(itemRegex) ?? [];
-  for (const block of blocks.slice(0, 20)) {
+  for (const block of blocks.slice(0, 120)) {
     const titleM = block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/i) ??
       block.match(/<title>(.*?)<\/title>/i);
     const linkM = block.match(/<link>(.*?)<\/link>/i);
@@ -76,7 +76,10 @@ Deno.serve(async (req) => {
   await supabase.from("news_items").delete().eq("family_id", familyId);
 
   if (aggregated.length > 0) {
-    const rows = aggregated.slice(0, 30).map((n) => ({
+    const deduped = Array.from(
+      new Map(aggregated.map((n) => [`${n.source}::${n.title}`.toLowerCase(), n])).values(),
+    );
+    const rows = deduped.slice(0, 120).map((n) => ({
       family_id: familyId,
       source: n.source,
       title: n.title,
