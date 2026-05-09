@@ -14,13 +14,35 @@ import ShoppingPage from "./pages/ShoppingPage";
 
 export default function App() {
   if (!supabaseConfigured) {
+    const onGithubPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
     return (
       <div className="page">
         <h1>Kodinäyttö</h1>
-        <p>
-          Aseta <code>VITE_SUPABASE_URL</code> ja <code>VITE_SUPABASE_ANON_KEY</code> tiedostoon{" "}
-          <code>.env</code> (kopioi <code>env.example</code>).
-        </p>
+        {onGithubPages ? (
+          <>
+            <p>
+              Sivu on rakennettu ilman Supabase-asetuksia. Lisää repoon{" "}
+              <strong>GitHub Actions ‑secretit</strong> (sama arvo kuin paikallisessa <code>.env</code>):
+            </p>
+            <ul className="list" style={{ paddingLeft: "1.2rem" }}>
+              <li>
+                <code>VITE_SUPABASE_URL</code> — projektin osoite (Dashboard → API)
+              </li>
+              <li>
+                <code>VITE_SUPABASE_ANON_KEY</code> — <strong>anon public</strong> ‑avain (ei service_role)
+              </li>
+            </ul>
+            <p className="muted">
+              Polku: <strong>Settings → Secrets and variables → Actions → New repository secret</strong>. Sen jälkeen{" "}
+              <strong>Actions → Web GitHub Pages → Run workflow</strong> (tai työnna commit <code>web/</code>‑kansioon).
+            </p>
+          </>
+        ) : (
+          <p>
+            Aseta <code>VITE_SUPABASE_URL</code> ja <code>VITE_SUPABASE_ANON_KEY</code> tiedostoon <code>web/.env</code>{" "}
+            (kopioi <code>env.example</code> juureen) ja käynnistä <code>npm run dev</code> uudestaan.
+          </p>
+        )}
       </div>
     );
   }

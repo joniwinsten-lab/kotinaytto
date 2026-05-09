@@ -26,6 +26,19 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      - name: Varmista Supabase-secrets (GitHub Pages -buildiin)
+        env:
+          VITE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$VITE_URL" ] || [ -z "$VITE_KEY" ]; then
+            echo "::error::Puuttuvat Actions-secretit. Lisää repoon: Settings → Secrets and variables → Actions → New repository secret:"
+            echo "  • VITE_SUPABASE_URL   (esim. https://xxxx.supabase.co)"
+            echo "  • VITE_SUPABASE_ANON_KEY   (Supabase → Project Settings → API → anon public)"
+            echo "Sen jälkeen: Actions → Web GitHub Pages → Run workflow."
+            exit 1
+          fi
+
       - name: Build
         working-directory: web
         env:

@@ -104,8 +104,11 @@ npm run dev
 Workflow **[Web GitHub Pages](.github/workflows/web-pages.yml)** buildaa `web/dist`:in ja työntää **`gh-pages`** ‑haaran.
 
 1. Repo → **Settings** → **Pages** → Source: branch **`gh-pages`** / **`/`** (tai `/root`).
-2. GitHub → **Settings** → **Secrets and variables** → **Actions** → lisää **`VITE_SUPABASE_URL`** ja **`VITE_SUPABASE_ANON_KEY`** (sama julkinen anon kuin webille).
-3. Sivun osoite on muotoa `https://<org>.github.io/<repo>/` — build käyttää automaattisesti polkua `/<repo>/`.
+2. GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+   - **`VITE_SUPABASE_URL`** — `https://<PROJECT_REF>.supabase.co` (Project Settings → API)
+   - **`VITE_SUPABASE_ANON_KEY`** — **anon public** ‑avain (ei `service_role`)
+3. **Actions** → **Web GitHub Pages** → **Run workflow** (tai tee pieni muutos `web/`-kansioon ja push). Ilman näitä secretejä buildi **epäonnistuu** tarkoituksella, ettei tyhjä sivu julkaista.
+4. Sivun osoite on muotoa `https://<org>.github.io/<repo>/` — build käyttää automaattisesti polkua `/<repo>/`.
 
 **404 GitHub Pagesissa:** käytä aina **projektin** osoitetta loppuun asti, esim. `https://joniwinsten-lab.github.io/kotinaytto/` (älä jätä `/kotinaytto` pois). Suora päivitys alisivulla (`…/hallinta`) vaatii `404.html`:n; se generoidaan automaattisesti Vite-buildissa.
 
