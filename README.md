@@ -107,6 +107,8 @@ Workflow **[Web GitHub Pages](.github/workflows/web-pages.yml)** buildaa `web/di
 2. GitHub → **Settings** → **Secrets and variables** → **Actions** → lisää **`VITE_SUPABASE_URL`** ja **`VITE_SUPABASE_ANON_KEY`** (sama julkinen anon kuin webille).
 3. Sivun osoite on muotoa `https://<org>.github.io/<repo>/` — build käyttää automaattisesti polkua `/<repo>/`.
 
+**404 GitHub Pagesissa:** käytä aina **projektin** osoitetta loppuun asti, esim. `https://joniwinsten-lab.github.io/kotinaytto/` (älä jätä `/kotinaytto` pois). Suora päivitys alisivulla (`…/hallinta`) vaatii `404.html`:n; se generoidaan automaattisesti Vite-buildissa.
+
 Tuotanto muualle: `npm run build` → `web/dist` (aseta tarvittaessa `VITE_BASE_PATH=/` tai alikansio).
 
 ## 3. Android TV (Shield)
