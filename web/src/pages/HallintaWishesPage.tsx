@@ -5,6 +5,7 @@ import type { EditorCaps } from "../lib/editorSession";
 export default function HallintaWishesPage() {
   const caps = useOutletContext<EditorCaps>();
   if (!caps.canMealWishes) return <Navigate to="/hallinta" replace />;
+  const autoBy = caps.personSlug === "been" ? "Bee" : caps.personSlug === "maija" ? "Maija" : "Joni";
 
   return (
     <div className="page">
@@ -12,7 +13,7 @@ export default function HallintaWishesPage() {
       <p className="muted">
         <Link to="/hallinta">← Takaisin</Link>
       </p>
-      <MealWishesEditor sharedSecret={caps.sharedSecret} />
+      <MealWishesEditor sharedSecret={caps.sharedSecret} autoCreatedBy={autoBy} />
     </div>
   );
 }

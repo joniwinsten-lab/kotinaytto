@@ -97,7 +97,7 @@ export function WeeklyMealsEditor({ sharedSecret }: { sharedSecret: string }) {
   );
 }
 
-export function MealWishesEditor({ sharedSecret }: { sharedSecret: string }) {
+export function MealWishesEditor({ sharedSecret, autoCreatedBy }: { sharedSecret: string; autoCreatedBy?: string }) {
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [wishText, setWishText] = useState("");
   const [wishBy, setWishBy] = useState("");
@@ -124,7 +124,7 @@ export function MealWishesEditor({ sharedSecret }: { sharedSecret: string }) {
     const { error: e } = await supabase.rpc("meal_wish_add", {
       p_secret: sharedSecret,
       p_text: t,
-      p_created_by: wishBy.trim() || null,
+      p_created_by: autoCreatedBy?.trim() || wishBy.trim() || null,
     });
     if (e) setError(e.message);
     setWishText("");
@@ -146,7 +146,13 @@ export function MealWishesEditor({ sharedSecret }: { sharedSecret: string }) {
         <input type="text" placeholder="Uusi toive…" value={wishText} onChange={(e) => setWishText(e.target.value)} />
       </div>
       <div className="row" style={{ marginBottom: 10 }}>
-        <input type="text" placeholder="Kuka (valinnainen)" value={wishBy} onChange={(e) => setWishBy(e.target.value)} />
+        {autoCreatedBy ? (
+          <span className="muted">
+            Toivoja: <strong>{autoCreatedBy}</strong>
+          </span>
+        ) : (
+          <input type="text" placeholder="Kuka (valinnainen)" value={wishBy} onChange={(e) => setWishBy(e.target.value)} />
+        )}
         <button type="button" onClick={() => void addWish()}>
           Lisää toive
         </button>
