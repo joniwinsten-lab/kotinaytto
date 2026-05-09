@@ -6,8 +6,42 @@
     "Segoe UI",
     Roboto,
     sans-serif;
-  background: #050810;
-  color: #e8eef7;
+  --bg: #050810;
+  --text: #e8eef7;
+  --card-bg: #0b1220;
+  --card-border: #1f2a44;
+  --muted: #b0bec5;
+  --link: #90caf9;
+  --button-primary: #1565c0;
+  --button-secondary: #263238;
+  --button-text: #ffffff;
+  --input-bg: #0e1628;
+  --input-border: #2a3b5c;
+  --pill-bg: #263238;
+  --pill-text: #cfd8dc;
+  --tile-border: #2a3f6c;
+  --tile-active: #142038;
+  background: var(--bg);
+  color: var(--text);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --text: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #d5deea;
+  --muted: #4b5563;
+  --link: #0f5cc0;
+  --button-primary: #0f5cc0;
+  --button-secondary: #dbe4f1;
+  --button-text: #0f172a;
+  --input-bg: #f8fbff;
+  --input-border: #b8c8dd;
+  --pill-bg: #e8eef8;
+  --pill-text: #334155;
+  --tile-border: #c6d5ea;
+  --tile-active: #eaf1fb;
 }
 
 * {
@@ -25,21 +59,21 @@ body {
 }
 
 .card {
-  background: #0b1220;
-  border: 1px solid #1f2a44;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
 }
 
 a {
-  color: #90caf9;
+  color: var(--link);
 }
 
 button,
 .btn {
-  background: #1565c0;
-  color: #fff;
+  background: var(--button-primary);
+  color: var(--button-text);
   border: none;
   border-radius: 10px;
   padding: 10px 14px;
@@ -48,7 +82,8 @@ button,
 }
 
 button.secondary {
-  background: #263238;
+  background: var(--button-secondary);
+  color: var(--text);
 }
 
 input[type="text"],
@@ -56,9 +91,9 @@ textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid #2a3b5c;
-  background: #0e1628;
-  color: #e8eef7;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
   font-size: 1rem;
 }
 
@@ -76,7 +111,7 @@ textarea {
 
 .list li {
   padding: 10px 0;
-  border-bottom: 1px solid #1f2a44;
+  border-bottom: 1px solid var(--card-border);
 }
 
 .check {
@@ -85,7 +120,7 @@ textarea {
 }
 
 .muted {
-  color: #b0bec5;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -132,16 +167,16 @@ input[type="file"] {
   display: block;
   padding: 18px 16px;
   border-radius: 14px;
-  background: #0b1220;
-  border: 1px solid #2a3f6c;
-  color: #e8eef7;
+  background: var(--card-bg);
+  border: 1px solid var(--tile-border);
+  color: var(--text);
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: 600;
 }
 
 .hallinta-tile:active {
-  background: #142038;
+  background: var(--tile-active);
 }
 
 .stack {
@@ -161,8 +196,8 @@ input[type="file"] {
   font-size: 0.8rem;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #263238;
-  color: #cfd8dc;
+  background: var(--pill-bg);
+  color: var(--pill-text);
 }
 
 .small-label {
@@ -183,9 +218,9 @@ input[type="file"] {
   min-width: 0;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid #2a3b5c;
-  background: #0e1628;
-  color: #e8eef7;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
 }
 
 .schedule-main-row {
@@ -224,6 +259,14 @@ input[type="file"] {
 
 .photo-card-actions {
   align-items: center;
+}
+
+.hallinta-topbar {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 @media (max-width: 820px) {
