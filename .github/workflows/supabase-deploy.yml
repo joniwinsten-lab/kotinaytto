@@ -61,3 +61,4 @@ jobs:
           supabase functions deploy sync-rss --yes
           supabase functions deploy sync-weather --yes
           supabase functions deploy photo-ingest --yes
+          supabase functions deploy photo-delete --yes
