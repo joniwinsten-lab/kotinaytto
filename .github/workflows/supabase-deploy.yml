@@ -1,11 +1,12 @@
 # Aja migraatiot ja Edge Functions Kodinäyttö-projektiin.
 #
-# GitHub → Settings → Secrets → Actions:
-#   SUPABASE_ACCESS_TOKEN  (tili: Access Tokens)
-#   SUPABASE_PROJECT_REF   (Reference ID)
-#   SUPABASE_DB_PASSWORD   (Project Settings → Database → Database password)
+# Pakolliset GitHub Secrets (Actions):
+#   SUPABASE_ACCESS_TOKEN  – https://supabase.com/dashboard/account/tokens
+#   SUPABASE_PROJECT_REF   – Dashboard → Project Settings → General → Reference ID
 #
-# project-ref -lippu poistui uudemmasta CLI:stä; linkataan ensin, sitten db push.
+# Valinnainen:
+#   SUPABASE_DB_PASSWORD   – vain jos haluat validoida Postgres-yhteyden linkissä.
+#                            Dashboard ei näytä vanhaa salasanaa; vain "Reset database password".
 
 name: Supabase deploy
 
@@ -36,13 +37,24 @@ jobs:
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Puuttuu SUPABASE_ACCESS_TOKEN"; exit 1; }
           test -n "$SUPABASE_PROJECT_REF" || { echo "Puuttuu SUPABASE_PROJECT_REF"; exit 1; }
-          test -n "$SUPABASE_DB_PASSWORD" || { echo "Puuttuu SUPABASE_DB_PASSWORD (Database password)"; exit 1; }
 
       - name: Link Supabase project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+        run: |
+          set -e
+          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          else
+            # Access token + tyhjä DB-salasana: CLI ohittaa Postgres-validoinnin (katso supabase link -docs).
+            supabase link --project-ref "$SUPABASE_PROJECT_REF" --password ""
+          fi
 
       - name: Push database migrations
-        run: supabase db push --yes
+        run: |
+          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            supabase db push --yes --password "$SUPABASE_DB_PASSWORD"
+          else
+            supabase db push --yes --password ""
+          fi
 
       - name: Deploy Edge Functions
         run: |

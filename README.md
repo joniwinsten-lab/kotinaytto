@@ -18,9 +18,14 @@ Käytä **omaan Kodinäyttöön** tarkoitettua Supabase-projektia.
 1. **Project Settings** → **General** → kopioi **Reference ID**.
 2. **Account** → **Access Tokens** → luo token.
 3. GitHub → repo → **Settings** → **Secrets and variables** → **Actions**:
-   - `SUPABASE_ACCESS_TOKEN` – [Access Tokens](https://supabase.com/dashboard/account/tokens) (tili, ei projekti)
-   - `SUPABASE_PROJECT_REF` – Reference ID (esim. `hevxwlhiahpuekvyazxy`)
-   - `SUPABASE_DB_PASSWORD` – Supabase → **Project Settings** → **Database** → *Database password* (tai *Reset database password* jos et muista)
+   - `SUPABASE_ACCESS_TOKEN` – [Access Tokens](https://supabase.com/dashboard/account/tokens) (tili)
+   - `SUPABASE_PROJECT_REF` – Reference ID (Dashboard → Project Settings → General)
+   - *(valinnainen)* `SUPABASE_DB_PASSWORD` – vain jos CI-linkki tai `db push` vaatii; alla selitys
+
+**Database password -kohdasta:** Supabase **ei näytä** Postgres-salasanaa uudelleen projektin luonnin jälkeen (turvallisuus). Voit vain **Reset database password** (Project Settings → Database) ja silloin saat **uuden** salasanan kerran kopioitavaksi. Sitä ei voi “hakea” ulkopuolelta ilman sinun kirjautumistasi.
+
+GitHub Actions -workflow on päivitetty niin, että **`SUPABASE_DB_PASSWORD` ei ole pakollinen**: käytössä ovat access token + projektin ref, ja tyhjä DB-salasana CLI:ssa vastaa “ohita validointi” -polkua. Jos `db push` silti epäonnistuu autentikointiin, tee reset ja lisää salasana secretiksi `SUPABASE_DB_PASSWORD`, tai aja migraatiot kerran **SQL Editorissa** reposta [`supabase/migrations/`](supabase/migrations/).
+
 4. **Actions** → **Supabase deploy** → **Run workflow**.
 
 ### Paikallinen CLI
