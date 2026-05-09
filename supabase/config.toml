@@ -1,4 +1,6 @@
-# Minimal Supabase CLI config – adjust project_id when linking remote.
+# Paikallinen CLI: `supabase link --project-ref <REFERENCE_ID>` tallentaa linkin supabase/.temp/
+# GitHub Actions käyttää SUPABASE_PROJECT_REF -salaisuutta (ei tämän tiedoston nimeä).
+# Reference ID: Dashboard → Project Settings → General.
 
 project_id = "kotinaytto"
 

@@ -2,16 +2,43 @@
 
 Perheen infonäyttö: **Android TV** -sovellus Nvidia Shieldille ja **Vite + React** -PWA puhelimella. Data **Supabasessa** (Postgres, Realtime, Storage, Edge Functions).
 
-## 1. Supabase
+**GitHub-repo:** [joniwinsten-lab/kotinaytto](https://github.com/joniwinsten-lab/kotinaytto)
 
-1. Luo projekti Supabaseen ja aja migraatiot:
-   - `supabase link` (valinnainen) tai kopioi SQL Supabase SQL Editoriin tiedostoista [`supabase/migrations/`](supabase/migrations/).
-2. Deployaa Edge Functions (RSS, sää, kuvan upload):
-   - `supabase functions deploy sync-rss`
-   - `supabase functions deploy sync-weather`
-   - `supabase functions deploy photo-ingest`
-3. Aseta salaisuudet funktioille (Dashboard → Edge Functions → Secrets): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (yleensä automaattisesti).
-4. Hae tokenit SQL:stä kerran:
+## 0. Kytkentä: GitHub ↔ Supabase (kotinaytto-projekti)
+
+Käytä **omaan Kodinäyttöön** tarkoitettua Supabase-projektia.
+
+### Vaihtoehta A – Supabasen GitHub-integraatio
+
+1. Supabase Dashboard → projekti **kotinaytto** → **Integrations** → **GitHub**.
+2. Valitse repo **joniwinsten-lab/kotinaytto** ja seuraa ohjattua linkitystä / migraatiopolitiikkaa.
+
+### Vaihtoehta B – GitHub Actions (`.github/workflows/supabase-deploy.yml`)
+
+1. **Project Settings** → **General** → kopioi **Reference ID**.
+2. **Account** → **Access Tokens** → luo token.
+3. GitHub → repo → **Settings** → **Secrets and variables** → **Actions**:
+   - `SUPABASE_ACCESS_TOKEN`
+   - `SUPABASE_PROJECT_REF` (= Reference ID)
+4. **Actions** → **Supabase deploy** → **Run workflow**.
+
+### Paikallinen CLI
+
+```bash
+brew install supabase/tap/supabase   # tai: npx supabase@latest ...
+supabase login
+supabase link --project-ref <REFERENCE_ID>
+supabase db push
+supabase functions deploy sync-rss
+supabase functions deploy sync-weather
+supabase functions deploy photo-ingest
+```
+
+## 1. Supabase (ajon jälkeen)
+
+1. Jos käytit vain SQL-editoria migraatioihin, deployaa funktiot CLI:llä tai aja GitHub Actions **Supabase deploy**.
+2. Edge Functions -salaisuudet (Dashboard → Edge Functions → Secrets): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (yleensä automaattisesti).
+3. Hae tokenit SQL:stä kerran:
    - `select read_token from families limit 1;` → TV + `VITE_FAMILY_READ_TOKEN` (vain jos tarvitset webissä dashboard-RPC:tä).
    - `select slug, secret from editor_tokens order by slug;` → jaetut muokkauslinkit (`VITE_TOKEN_SHARED`, `VITE_TOKEN_BEEN`, …).
 
