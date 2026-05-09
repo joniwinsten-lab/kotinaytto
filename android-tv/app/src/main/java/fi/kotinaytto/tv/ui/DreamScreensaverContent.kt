@@ -104,12 +104,20 @@ fun DreamScreensaverContent() {
 internal fun DreamScreensaverBody(state: DashboardState, photoIndex: Int) {
     val photos = state.photos
     val helsinki = ZoneId.of("Europe/Helsinki")
-    val helsinkiHour = ZonedDateTime.now(helsinki).hour
+    val nowHel = ZonedDateTime.now(helsinki)
+    val helsinkiHour = nowHel.hour
+    val dayMinute = nowHel.hour * 60 + nowHel.minute
     val payload = state.weatherPayload
     val weatherCode = payload?.currentWeatherCode()
     val isDay = payload?.currentIsDay() ?: (helsinkiHour in 7..20)
     val temp = payload?.currentTemperature()
     val sunTimes = payload?.todaySunTimesMinutes(helsinki)
+    val dimOverlayAlpha = computeDimOverlayAlpha(
+        dayMinute = dayMinute,
+        sunriseMinute = sunTimes?.sunriseMinute ?: 6 * 60,
+        sunsetMinute = sunTimes?.sunsetMinute ?: 18 * 60,
+        weatherCode = weatherCode,
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         WeatherLandscapeBackdrop(
@@ -126,8 +134,8 @@ internal fun DreamScreensaverBody(state: DashboardState, photoIndex: Int) {
                 .background(
                     Brush.verticalGradient(
                         0f to Color.Transparent,
-                        0.55f to Color(0x40050810),
-                        1f to Color(0xE6050810),
+                        0.55f to Color(0xFF050810).copy(alpha = dimOverlayAlpha * 0.55f),
+                        1f to Color(0xFF050810).copy(alpha = dimOverlayAlpha),
                     ),
                 ),
         )
