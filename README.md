@@ -18,8 +18,9 @@ Käytä **omaan Kodinäyttöön** tarkoitettua Supabase-projektia.
 1. **Project Settings** → **General** → kopioi **Reference ID**.
 2. **Account** → **Access Tokens** → luo token.
 3. GitHub → repo → **Settings** → **Secrets and variables** → **Actions**:
-   - `SUPABASE_ACCESS_TOKEN`
-   - `SUPABASE_PROJECT_REF` (= Reference ID)
+   - `SUPABASE_ACCESS_TOKEN` – [Access Tokens](https://supabase.com/dashboard/account/tokens) (tili, ei projekti)
+   - `SUPABASE_PROJECT_REF` – Reference ID (esim. `hevxwlhiahpuekvyazxy`)
+   - `SUPABASE_DB_PASSWORD` – Supabase → **Project Settings** → **Database** → *Database password* (tai *Reset database password* jos et muista)
 4. **Actions** → **Supabase deploy** → **Run workflow**.
 
 ### Paikallinen CLI
