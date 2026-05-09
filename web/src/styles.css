@@ -192,6 +192,10 @@ input[type="file"] {
   margin-bottom: 10px;
 }
 
+.schedule-row {
+  overflow: hidden;
+}
+
 .pill.vapaa {
   font-size: 0.8rem;
   padding: 4px 10px;
@@ -205,6 +209,7 @@ input[type="file"] {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  min-width: 0;
 }
 
 .time-row {
@@ -213,6 +218,7 @@ input[type="file"] {
 }
 
 .time-row input[type="time"] {
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -221,6 +227,13 @@ input[type="file"] {
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text);
+}
+
+.schedule-row input[type="text"],
+.schedule-row input[type="time"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .schedule-main-row {
