@@ -13,7 +13,7 @@ private val notesJson = Json { ignoreUnknownKeys = true }
 fun formatScheduleLineForTv(entryDate: String, title: String): String {
     val t = title.trim()
     if (t.isEmpty()) return "$entryDate —"
-    if (t.equals("vapaa", ignoreCase = true)) return "${compactDayMonthFi(entryDate)} Vapaa"
+    if (t.startsWith("vapaa", ignoreCase = true)) return "${compactDayMonthFi(entryDate)} ${t.replaceFirstChar { it.uppercase() }}"
     val m = SHIFT_PATTERN.matchEntire(t) ?: return "$entryDate: $t"
     val short = compactDayMonthFi(entryDate)
     return "$short ${m.groupValues[1]}–${m.groupValues[2]}"

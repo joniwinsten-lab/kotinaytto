@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import type { EditorCaps } from "../lib/editorSession";
 import { formatIsoShortFi, helDateRange8, weekdayShortFi } from "../lib/helDates";
-import { isFinnishSundayOrHoliday } from "../lib/holidaysFi";
+import { holidayOrSundayLabelFi, isFinnishSundayOrHoliday } from "../lib/holidaysFi";
 import { supabase } from "../lib/supabase";
 
 type Entry = {
@@ -36,7 +36,7 @@ function saveBeenDefaults(start: string, end: string) {
 function parseTitle(title: string): { kind: "free" } | { kind: "shift"; a: string; b: string } | { kind: "legacy"; text: string } {
   const t = title.trim();
   if (!t) return { kind: "shift", a: "", b: "" };
-  if (t.toLowerCase() === "vapaa") return { kind: "free" };
+  if (t.toLowerCase().startsWith("vapaa")) return { kind: "free" };
   const m = t.match(SHIFT_RE);
   if (m) return { kind: "shift", a: m[1], b: m[2] };
   return { kind: "legacy", text: t };
@@ -173,14 +173,15 @@ export default function HallintaWeekSchedulePage() {
     for (const iso of dates) {
       if (!isFinnishSundayOrHoliday(iso)) continue;
       const row = rows.find((r) => r.entry_date === iso && r.person_slug === personSlug);
-      if (row?.title === "Vapaa") continue;
+      if (row?.title?.trim()?.toLowerCase()?.startsWith("vapaa")) continue;
+      const freeLabel = holidayOrSundayLabelFi(iso) ?? "Vapaa"
       setError(null);
       await supabase.rpc("schedule_upsert", {
         p_secret: scheduleSecret,
         p_person_slug: personSlug,
         p_entry_id: row?.id ?? null,
         p_entry_date: iso,
-        p_title: "Vapaa",
+        p_title: `Vapaa — ${freeLabel}`,
         p_notes: null,
       });
     }
