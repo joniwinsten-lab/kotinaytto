@@ -23,6 +23,15 @@ import kotlin.text.Charsets
 private data class GetDashboardRpc(val p_read_token: String)
 
 private val dashboardJson = Json { ignoreUnknownKeys = true }
+private val itemRegex = Regex("<item[\\s\\S]*?</item>", RegexOption.IGNORE_CASE)
+private val titleRegex = Regex("<title><!\\[CDATA\\[(.*?)]]></title>|<title>(.*?)</title>", RegexOption.IGNORE_CASE)
+private val linkRegex = Regex("<link>(.*?)</link>", RegexOption.IGNORE_CASE)
+private val collapseWsRegex = Regex("\\s+")
+private val rssFeeds = listOf(
+    "Yle" to "https://feeds.yle.fi/uutiset/v1/recent.rss?publisherIds=YLE_UUTISET",
+    "MTV" to "https://www.mtvuutiset.fi/rss/uutiset",
+    "IS" to "https://www.is.fi/rss/tuoreimmat.xml",
+)
 
 /** PostgREST voi palauttaa `[{"get_dashboard": {...}}]` tai suoraan `{...}` / `{"get_dashboard": {...}}`. */
 private fun JsonObject.unwrapGetDashboardPayload(): JsonObject {
@@ -99,6 +108,52 @@ class DashboardRepository(
                     .use { it.readText() }
                 require(httpCode in 200..299) { "Open-Meteo HTTP $httpCode: ${body.take(120)}" }
                 dashboardJson.parseToJsonElement(body).jsonObject
+            }
+        }
+
+    /** Fallback backend-häiriöihin: hae suoraan RSS-otsikoita tickeriin. */
+    suspend fun fetchRssFallbackHeadlines(maxItems: Int = 120): Result<List<NewsItemDto>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val ua = "KodinayttoTV/1.0 (android fallback rss)"
+                val aggregated = mutableListOf<NewsItemDto>()
+                rssFeeds.forEach { (source, feedUrl) ->
+                    val conn = (URL(feedUrl).openConnection() as HttpURLConnection).apply {
+                        connectTimeout = 15_000
+                        readTimeout = 15_000
+                        setRequestProperty("User-Agent", ua)
+                        setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml, */*")
+                    }
+                    val httpCode = conn.responseCode
+                    if (httpCode !in 200..299) return@forEach
+                    val xml = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    itemRegex.findAll(xml).forEachIndexed { idx, m ->
+                        if (idx >= maxItems) return@forEachIndexed
+                        val block = m.value
+                        val rawTitle = titleRegex.find(block)?.groups?.get(1)?.value
+                            ?: titleRegex.find(block)?.groups?.get(2)?.value
+                            ?: return@forEachIndexed
+                        val title = rawTitle
+                            .replace("&amp;", "&")
+                            .replace("&quot;", "\"")
+                            .replace("&#39;", "'")
+                            .replace("&lt;", "<")
+                            .replace("&gt;", ">")
+                            .replace(collapseWsRegex, " ")
+                            .trim()
+                        if (title.isBlank()) return@forEachIndexed
+                        val link = linkRegex.find(block)?.groups?.get(1)?.value?.trim()
+                        aggregated += NewsItemDto(
+                            id = "rssfb-${source.lowercase()}-${title.hashCode().toUInt().toString(16)}",
+                            source = source,
+                            title = title,
+                            url = link,
+                        )
+                    }
+                }
+                aggregated
+                    .distinctBy { "${it.source}::${it.title}".lowercase() }
+                    .take(maxItems)
             }
         }
 }

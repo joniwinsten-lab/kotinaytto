@@ -48,6 +48,16 @@ class DashboardViewModel(
                     repository.fetchOpenMeteoForecast(latitude = lat, longitude = lon)
                         .onSuccess { om -> state = state.copy(weatherPayload = om) }
                 }
+                if (state.news.size <= 2) {
+                    repository.fetchRssFallbackHeadlines()
+                        .onSuccess { fallback ->
+                            val merged = (state.news + fallback)
+                                .filter { it.title.isNotBlank() }
+                                .distinctBy { "${it.source}::${it.title}".lowercase() }
+                                .take(120)
+                            if (merged.isNotEmpty()) state = state.copy(news = merged)
+                        }
+                }
                 _state.value = state
             }
             .onFailure { e ->
