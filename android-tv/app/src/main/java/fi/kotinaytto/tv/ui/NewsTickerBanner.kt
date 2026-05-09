@@ -30,6 +30,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import fi.kotinaytto.tv.data.NewsItemDto
 
+private val wsRegex = Regex("\\s+")
+
 @Composable
 fun NewsTickerBanner(
     news: List<NewsItemDto>,
@@ -37,9 +39,21 @@ fun NewsTickerBanner(
 ) {
     if (news.isEmpty()) return
     val blockText = remember(news) {
-        val uniq = news.distinctBy { "${it.source}::${it.title}".lowercase() }
-        val parts = if (uniq.isNotEmpty()) uniq else news
-        parts.joinToString(separator = "   ◆   ") { "${it.source}: ${it.title}" } + "   ◆   "
+        val normalized = news.mapNotNull { item ->
+            val source = item.source.replace(wsRegex, " ").trim().ifBlank { "Uutinen" }
+            val title = item.title.replace(wsRegex, " ").trim()
+            if (title.isBlank()) null else "$source: $title"
+        }
+        val uniq = normalized.distinctBy { it.lowercase() }
+        val parts = if (uniq.isNotEmpty()) uniq else normalized
+        val repeated = when {
+            parts.isEmpty() -> listOf("Uutisia tulossa")
+            parts.size >= 8 -> parts
+            else -> buildList {
+                while (size < 12) addAll(parts)
+            }.take(12)
+        }
+        repeated.joinToString(separator = "   ◆   ", postfix = "   ◆   ")
     }
     val style = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFECEFF1))
     val measurer = rememberTextMeasurer()
