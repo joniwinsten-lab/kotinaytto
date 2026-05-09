@@ -350,7 +350,7 @@ private fun FamilyHudColumn(state: DashboardState) {
                     text = formatScheduleLineForTv(e.entryDate, e.title),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFFCFD8DC),
                 )
             }

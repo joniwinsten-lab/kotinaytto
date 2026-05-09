@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -54,6 +55,7 @@ import fi.kotinaytto.tv.data.weatherDescriptionFi
 import fi.kotinaytto.tv.ui.scene.WeatherLandscapeBackdrop
 import fi.kotinaytto.tv.ui.weather.WeatherConditionIcon
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonObject
@@ -403,7 +405,7 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
                         text = formatScheduleLineForTv(e.entryDate, e.title),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f),
                     )
                     val extra = scheduleExtraLineForTv(e.notes)
@@ -413,7 +415,7 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
                             text = extra,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFFB0BEC5),
                             modifier = Modifier.weight(1f),
                         )
@@ -429,8 +431,24 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
 
 @Composable
 private fun ShoppingCard(items: List<ShoppingItemDto>) {
+    val scroll = rememberScrollState()
+    LaunchedEffect(items.size) {
+        if (items.size <= 10) return@LaunchedEffect
+        while (isActive) {
+            delay(2_500)
+            if (scroll.maxValue <= 0) continue
+            scroll.animateScrollTo(scroll.maxValue)
+            delay(2_200)
+            scroll.animateScrollTo(0)
+        }
+    }
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
-        Column(Modifier.padding(16.dp)) {
+        Column(
+            Modifier
+                .padding(16.dp)
+                .heightIn(max = 300.dp)
+                .verticalScroll(scroll),
+        ) {
             Text("Kauppalista", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             items.filter { !it.done }.forEach { s ->
@@ -461,8 +479,25 @@ private val dayNamesFi = listOf("Ma", "Ti", "Ke", "To", "Pe", "La", "Su")
 
 @Composable
 private fun MealsCard(state: DashboardState) {
+    val contentSize = state.weeklyMeals.size + state.mealWishes.size
+    val scroll = rememberScrollState()
+    LaunchedEffect(contentSize) {
+        if (contentSize <= 12) return@LaunchedEffect
+        while (isActive) {
+            delay(2_500)
+            if (scroll.maxValue <= 0) continue
+            scroll.animateScrollTo(scroll.maxValue)
+            delay(2_200)
+            scroll.animateScrollTo(0)
+        }
+    }
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
-        Column(Modifier.padding(16.dp)) {
+        Column(
+            Modifier
+                .padding(16.dp)
+                .heightIn(max = 320.dp)
+                .verticalScroll(scroll),
+        ) {
             Text("Lounaat tällä viikolla", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             state.weeklyMeals.sortedBy { it.dayIndex }.forEach { m ->
