@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import fi.kotinaytto.tv.data.DashboardState
 import fi.kotinaytto.tv.data.ScheduleEntryDto
 import fi.kotinaytto.tv.data.formatScheduleLineForTv
+import fi.kotinaytto.tv.data.scheduleExtraLineForTv
 import fi.kotinaytto.tv.data.ShoppingItemDto
 import fi.kotinaytto.tv.data.currentIsDay
 import fi.kotinaytto.tv.data.currentWeatherCode
@@ -60,6 +61,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.LocalDate
 import java.util.Locale
 import kotlin.random.Random
 
@@ -367,20 +369,45 @@ private fun WeatherCard(state: DashboardState) {
 
 @Composable
 private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
+    val today = LocalDate.now(ZoneId.of("Europe/Helsinki"))
+    val maxDate = today.plusDays(4)
+    val visible = items.filter { e ->
+        runCatching { LocalDate.parse(e.entryDate) }
+            .map { !it.isBefore(today) && !it.isAfter(maxDate) }
+            .getOrDefault(false)
+    }.sortedBy { it.entryDate }
+
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
-            items.take(12).forEach { e ->
-                Text(
-                    text = formatScheduleLineForTv(e.entryDate, e.title),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
+            visible.forEach { e ->
+                Row(
                     modifier = Modifier.padding(vertical = 3.dp),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = formatScheduleLineForTv(e.entryDate, e.title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    val extra = scheduleExtraLineForTv(e.notes)
+                    if (!extra.isNullOrBlank()) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = extra,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFB0BEC5),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
             }
-            if (items.isEmpty()) {
+            if (visible.isEmpty()) {
                 Text("Ei merkintöjä", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB0BEC5))
             }
         }

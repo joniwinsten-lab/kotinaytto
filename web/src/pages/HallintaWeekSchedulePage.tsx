@@ -15,6 +15,7 @@ type Entry = {
 
 const SHIFT_RE = /^(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})\s*$/;
 const EN_DASH = "\u2013";
+const EXTRA_NOTES_PREFIX = "koti_extra:";
 
 const BEEN_DEFAULT_LS = "kotinaytto_been_shift_v1";
 
@@ -58,6 +59,31 @@ function weekdayNumberMon0(iso: string): number {
   return sun0 === 0 ? 6 : sun0 - 1;
 }
 
+function parseExtraFromNotes(notes: string | null): { showOnTv: boolean; label: string; time: string } {
+  if (!notes || !notes.startsWith(EXTRA_NOTES_PREFIX)) return { showOnTv: false, label: "", time: "" };
+  try {
+    const obj = JSON.parse(notes.slice(EXTRA_NOTES_PREFIX.length)) as {
+      showOnTv?: boolean;
+      label?: string;
+      time?: string;
+    };
+    return {
+      showOnTv: Boolean(obj.showOnTv),
+      label: (obj.label ?? "").trim(),
+      time: (obj.time ?? "").trim(),
+    };
+  } catch {
+    return { showOnTv: false, label: "", time: "" };
+  }
+}
+
+function buildExtraNotes(showOnTv: boolean, label: string, time: string): string | null {
+  const cleanLabel = label.trim();
+  const cleanTime = time.trim();
+  if (!showOnTv && !cleanLabel && !cleanTime) return null;
+  return `${EXTRA_NOTES_PREFIX}${JSON.stringify({ showOnTv, label: cleanLabel, time: cleanTime })}`;
+}
+
 export default function HallintaWeekSchedulePage() {
   const caps = useOutletContext<EditorCaps>();
   const personSlug = caps.personSlug;
@@ -66,7 +92,9 @@ export default function HallintaWeekSchedulePage() {
   const dates = useMemo(() => helDateRange8(), []);
 
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, { start: string; end: string; legacy: string; manualFree: boolean }>>({});
+  const [drafts, setDrafts] = useState<
+    Record<string, { start: string; end: string; legacy: string; manualFree: boolean; extraLabel: string; extraTime: string; showExtraOnTv: boolean }>
+  >({});
   const [error, setError] = useState<string | null>(null);
   const [busyDate, setBusyDate] = useState<string | null>(null);
 
@@ -87,15 +115,19 @@ export default function HallintaWeekSchedulePage() {
       rows.forEach((e) => {
         if (e.person_slug === personSlug) map.set(e.entry_date, e);
       });
-      const next: Record<string, { start: string; end: string; legacy: string; manualFree: boolean }> = {};
+      const next: Record<
+        string,
+        { start: string; end: string; legacy: string; manualFree: boolean; extraLabel: string; extraTime: string; showExtraOnTv: boolean }
+      > = {};
       const defaults = loadBeenDefaults();
       for (const iso of dates) {
         const row = map.get(iso);
         const free = isFinnishSundayOrHoliday(iso);
         if (free) continue;
         const parsed = parseTitle(row?.title ?? "");
+        const extra = parseExtraFromNotes(row?.notes ?? null);
         if (parsed.kind === "free") {
-          next[iso] = { start: "", end: "", legacy: "", manualFree: true };
+          next[iso] = { start: "", end: "", legacy: "", manualFree: true, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv };
         } else if (parsed.kind === "shift") {
           let s = toTimeInput(parsed.a);
           let e = toTimeInput(parsed.b);
@@ -103,9 +135,17 @@ export default function HallintaWeekSchedulePage() {
             s = toTimeInput(defaults.start);
             e = toTimeInput(defaults.end);
           }
-          next[iso] = { start: s, end: e, legacy: "", manualFree: false };
+          next[iso] = { start: s, end: e, legacy: "", manualFree: false, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv };
         } else {
-          next[iso] = { start: "", end: "", legacy: parsed.text, manualFree: false };
+          next[iso] = {
+            start: "",
+            end: "",
+            legacy: parsed.text,
+            manualFree: false,
+            extraLabel: extra.label,
+            extraTime: extra.time,
+            showExtraOnTv: extra.showOnTv,
+          };
         }
       }
       setDrafts(next);
@@ -169,7 +209,15 @@ export default function HallintaWeekSchedulePage() {
     setError(null);
     try {
       const row = byDate.get(iso);
-      const d = drafts[iso] ?? { start: "", end: "", legacy: "", manualFree: false };
+      const d = drafts[iso] ?? {
+        start: "",
+        end: "",
+        legacy: "",
+        manualFree: false,
+        extraLabel: "",
+        extraTime: "",
+        showExtraOnTv: false,
+      };
       let title: string;
       if (d.manualFree) {
         title = "Vapaa";
@@ -199,7 +247,7 @@ export default function HallintaWeekSchedulePage() {
         p_entry_id: row?.id ?? null,
         p_entry_date: iso,
         p_title: title,
-        p_notes: null,
+        p_notes: personSlug === "been" ? buildExtraNotes(d.showExtraOnTv, d.extraLabel, d.extraTime) : null,
       });
       if (upE) throw upE;
 
@@ -221,10 +269,7 @@ export default function HallintaWeekSchedulePage() {
   return (
     <div className="page">
       <h1>{heading}</h1>
-      <p className="muted">
-        Näytetään tänään ja seuraavat 7 päivää. Sunnuntai ja arkipyhät ovat automaattisesti vapaita. TV näyttää vuoroista
-        vain kellonajat.
-      </p>
+      <p className="muted">Näytetään tänään ja seuraavat 7 päivää. Sunnuntai ja arkipyhät ovat automaattisesti vapaita.</p>
       <p className="muted">
         <Link to="/hallinta">← Takaisin</Link>
       </p>
@@ -254,7 +299,7 @@ export default function HallintaWeekSchedulePage() {
                             setDrafts((prev) => ({
                               ...prev,
                               [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
                                 manualFree: e.target.checked,
                               },
                             }))
@@ -271,7 +316,10 @@ export default function HallintaWeekSchedulePage() {
                           onChange={(e) =>
                             setDrafts((prev) => ({
                               ...prev,
-                              [iso]: { ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }), legacy: e.target.value },
+                              [iso]: {
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                legacy: e.target.value,
+                              },
                             }))
                           }
                         />
@@ -287,7 +335,7 @@ export default function HallintaWeekSchedulePage() {
                             setDrafts((prev) => ({
                               ...prev,
                               [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
                                 manualFree: e.target.checked,
                               },
                             }))
@@ -305,7 +353,7 @@ export default function HallintaWeekSchedulePage() {
                             setDrafts((prev) => ({
                               ...prev,
                               [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
                                 start: e.target.value,
                               },
                             }))
@@ -322,13 +370,90 @@ export default function HallintaWeekSchedulePage() {
                             setDrafts((prev) => ({
                               ...prev,
                               [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false }),
+                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
                                 end: e.target.value,
                               },
                             }))
                           }
                         />
                       </label>
+                      {personSlug === "been" && (
+                        <>
+                          <label className="muted small-label">
+                            Treenit / muu
+                            <input
+                              type="text"
+                              value={drafts[iso]?.extraLabel ?? ""}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? {
+                                      start: "",
+                                      end: "",
+                                      legacy: "",
+                                      manualFree: false,
+                                      extraLabel: "",
+                                      extraTime: "",
+                                      showExtraOnTv: false,
+                                    }),
+                                    extraLabel: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="muted small-label">
+                            Aika
+                            <input
+                              type="text"
+                              placeholder="esim. 17:00–18:30"
+                              value={drafts[iso]?.extraTime ?? ""}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? {
+                                      start: "",
+                                      end: "",
+                                      legacy: "",
+                                      manualFree: false,
+                                      extraLabel: "",
+                                      extraTime: "",
+                                      showExtraOnTv: false,
+                                    }),
+                                    extraTime: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="row muted" style={{ gap: 6 }}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(drafts[iso]?.showExtraOnTv)}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? {
+                                      start: "",
+                                      end: "",
+                                      legacy: "",
+                                      manualFree: false,
+                                      extraLabel: "",
+                                      extraTime: "",
+                                      showExtraOnTv: false,
+                                    }),
+                                    showExtraOnTv: e.target.checked,
+                                  },
+                                }))
+                              }
+                            />
+                            Näytä Treenit / muu TV:ssä
+                          </label>
+                        </>
+                      )}
                       <button type="button" className="touch-btn" disabled={busyDate === iso} onClick={() => void saveDate(iso)}>
                         {busyDate === iso ? "…" : "Tallenna"}
                       </button>
