@@ -326,59 +326,61 @@ export default function HallintaWeekSchedulePage() {
                       </label>
                     </>
                   ) : (
-                    <div className="row time-row">
-                      <label className="row muted" style={{ gap: 6 }}>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(drafts[iso]?.manualFree)}
-                          onChange={(e) =>
-                            setDrafts((prev) => ({
-                              ...prev,
-                              [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
-                                manualFree: e.target.checked,
-                              },
-                            }))
-                          }
-                        />
-                        Vapaa
-                      </label>
-                      <label className="muted small-label">
-                        Aloitus
-                        <input
-                          type="time"
-                          value={drafts[iso]?.start ?? ""}
-                          disabled={Boolean(drafts[iso]?.manualFree)}
-                          onChange={(e) =>
-                            setDrafts((prev) => ({
-                              ...prev,
-                              [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
-                                start: e.target.value,
-                              },
-                            }))
-                          }
-                        />
-                      </label>
-                      <label className="muted small-label">
-                        Lopetus
-                        <input
-                          type="time"
-                          value={drafts[iso]?.end ?? ""}
-                          disabled={Boolean(drafts[iso]?.manualFree)}
-                          onChange={(e) =>
-                            setDrafts((prev) => ({
-                              ...prev,
-                              [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
-                                end: e.target.value,
-                              },
-                            }))
-                          }
-                        />
-                      </label>
+                    <>
+                      <div className="row time-row">
+                        <label className="row muted" style={{ gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(drafts[iso]?.manualFree)}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [iso]: {
+                                  ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                  manualFree: e.target.checked,
+                                },
+                              }))
+                            }
+                          />
+                          Vapaa
+                        </label>
+                        <label className="muted small-label">
+                          Aloitus
+                          <input
+                            type="time"
+                            value={drafts[iso]?.start ?? ""}
+                            disabled={Boolean(drafts[iso]?.manualFree)}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [iso]: {
+                                  ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                  start: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="muted small-label">
+                          Lopetus
+                          <input
+                            type="time"
+                            value={drafts[iso]?.end ?? ""}
+                            disabled={Boolean(drafts[iso]?.manualFree)}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [iso]: {
+                                  ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                  end: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
                       {personSlug === "been" && (
-                        <>
+                        <div className="row time-row" style={{ marginTop: 8 }}>
                           <label className="muted small-label">
                             Treenit / muu
                             <input
@@ -428,7 +430,7 @@ export default function HallintaWeekSchedulePage() {
                               }
                             />
                           </label>
-                          <label className="row muted" style={{ gap: 6 }}>
+                          <label className="row muted" style={{ gap: 6, minWidth: 210 }}>
                             <input
                               type="checkbox"
                               checked={Boolean(drafts[iso]?.showExtraOnTv)}
@@ -450,14 +452,16 @@ export default function HallintaWeekSchedulePage() {
                                 }))
                               }
                             />
-                            Näytä Treenit / muu TV:ssä
+                            Näytä TV:ssä
                           </label>
-                        </>
+                        </div>
                       )}
-                      <button type="button" className="touch-btn" disabled={busyDate === iso} onClick={() => void saveDate(iso)}>
-                        {busyDate === iso ? "…" : "Tallenna"}
-                      </button>
-                    </div>
+                      <div className="row" style={{ marginTop: 8 }}>
+                        <button type="button" className="touch-btn" disabled={busyDate === iso} onClick={() => void saveDate(iso)}>
+                          {busyDate === iso ? "…" : "Tallenna"}
+                        </button>
+                      </div>
+                    </>
                   )}
                   {drafts[iso]?.legacy ? (
                     <button type="button" className="touch-btn secondary slim-top" disabled={busyDate === iso} onClick={() => void saveDate(iso)}>
