@@ -243,6 +243,13 @@ input[type="file"] {
   min-width: 0;
 }
 
+.joni-location-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .been-extra-row {
   display: grid;
   grid-template-columns: 1.5fr 1fr;

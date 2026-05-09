@@ -16,6 +16,7 @@ type Entry = {
 const SHIFT_RE = /^(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})\s*$/;
 const EN_DASH = "\u2013";
 const EXTRA_NOTES_PREFIX = "koti_extra:";
+const JONI_LOCATION_PREFIX = "koti_joni_location:";
 
 const BEEN_DEFAULT_LS = "kotinaytto_been_shift_v1";
 
@@ -84,6 +85,44 @@ function buildExtraNotes(showOnTv: boolean, label: string, time: string): string
   return `${EXTRA_NOTES_PREFIX}${JSON.stringify({ showOnTv, label: cleanLabel, time: cleanTime })}`;
 }
 
+type JoniLocation = "" | "home" | "office" | "tampere";
+
+function parseJoniLocationFromNotes(notes: string | null): JoniLocation {
+  if (!notes || !notes.startsWith(JONI_LOCATION_PREFIX)) return "";
+  const v = notes.slice(JONI_LOCATION_PREFIX.length).trim().toLowerCase();
+  if (v === "home" || v === "office" || v === "tampere") return v;
+  return "";
+}
+
+function buildJoniLocationNotes(loc: JoniLocation): string | null {
+  if (!loc) return null;
+  return `${JONI_LOCATION_PREFIX}${loc}`;
+}
+
+type Draft = {
+  start: string;
+  end: string;
+  legacy: string;
+  manualFree: boolean;
+  extraLabel: string;
+  extraTime: string;
+  showExtraOnTv: boolean;
+  joniLocation: JoniLocation;
+};
+
+function emptyDraft(): Draft {
+  return {
+    start: "",
+    end: "",
+    legacy: "",
+    manualFree: false,
+    extraLabel: "",
+    extraTime: "",
+    showExtraOnTv: false,
+    joniLocation: "",
+  };
+}
+
 export default function HallintaWeekSchedulePage() {
   const caps = useOutletContext<EditorCaps>();
   const personSlug = caps.personSlug;
@@ -92,9 +131,7 @@ export default function HallintaWeekSchedulePage() {
   const dates = useMemo(() => helDateRange8(), []);
 
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [drafts, setDrafts] = useState<
-    Record<string, { start: string; end: string; legacy: string; manualFree: boolean; extraLabel: string; extraTime: string; showExtraOnTv: boolean }>
-  >({});
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [error, setError] = useState<string | null>(null);
   const [busyDate, setBusyDate] = useState<string | null>(null);
 
@@ -115,10 +152,7 @@ export default function HallintaWeekSchedulePage() {
       rows.forEach((e) => {
         if (e.person_slug === personSlug) map.set(e.entry_date, e);
       });
-      const next: Record<
-        string,
-        { start: string; end: string; legacy: string; manualFree: boolean; extraLabel: string; extraTime: string; showExtraOnTv: boolean }
-      > = {};
+      const next: Record<string, Draft> = {};
       const defaults = loadBeenDefaults();
       for (const iso of dates) {
         const row = map.get(iso);
@@ -126,8 +160,9 @@ export default function HallintaWeekSchedulePage() {
         if (free) continue;
         const parsed = parseTitle(row?.title ?? "");
         const extra = parseExtraFromNotes(row?.notes ?? null);
+        const joniLocation = parseJoniLocationFromNotes(row?.notes ?? null);
         if (parsed.kind === "free") {
-          next[iso] = { start: "", end: "", legacy: "", manualFree: true, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv };
+          next[iso] = { ...emptyDraft(), manualFree: true, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv, joniLocation };
         } else if (parsed.kind === "shift") {
           let s = toTimeInput(parsed.a);
           let e = toTimeInput(parsed.b);
@@ -135,16 +170,15 @@ export default function HallintaWeekSchedulePage() {
             s = toTimeInput(defaults.start);
             e = toTimeInput(defaults.end);
           }
-          next[iso] = { start: s, end: e, legacy: "", manualFree: false, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv };
+          next[iso] = { ...emptyDraft(), start: s, end: e, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv, joniLocation };
         } else {
           next[iso] = {
-            start: "",
-            end: "",
+            ...emptyDraft(),
             legacy: parsed.text,
-            manualFree: false,
             extraLabel: extra.label,
             extraTime: extra.time,
             showExtraOnTv: extra.showOnTv,
+            joniLocation,
           };
         }
       }
@@ -210,15 +244,7 @@ export default function HallintaWeekSchedulePage() {
     setError(null);
     try {
       const row = byDate.get(iso);
-      const d = drafts[iso] ?? {
-        start: "",
-        end: "",
-        legacy: "",
-        manualFree: false,
-        extraLabel: "",
-        extraTime: "",
-        showExtraOnTv: false,
-      };
+      const d = drafts[iso] ?? emptyDraft();
       let title: string;
       if (d.manualFree) {
         title = "Vapaa";
@@ -248,7 +274,12 @@ export default function HallintaWeekSchedulePage() {
         p_entry_id: row?.id ?? null,
         p_entry_date: iso,
         p_title: title,
-        p_notes: personSlug === "been" ? buildExtraNotes(d.showExtraOnTv, d.extraLabel, d.extraTime) : null,
+        p_notes:
+          personSlug === "been"
+            ? buildExtraNotes(d.showExtraOnTv, d.extraLabel, d.extraTime)
+            : personSlug === "joni"
+              ? buildJoniLocationNotes(d.joniLocation)
+              : null,
       });
       if (upE) throw upE;
 
@@ -300,7 +331,7 @@ export default function HallintaWeekSchedulePage() {
                             setDrafts((prev) => ({
                               ...prev,
                               [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                ...(prev[iso] ?? emptyDraft()),
                                 manualFree: e.target.checked,
                               },
                             }))
@@ -318,7 +349,7 @@ export default function HallintaWeekSchedulePage() {
                             setDrafts((prev) => ({
                               ...prev,
                               [iso]: {
-                                ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                ...(prev[iso] ?? emptyDraft()),
                                 legacy: e.target.value,
                               },
                             }))
@@ -337,7 +368,7 @@ export default function HallintaWeekSchedulePage() {
                               setDrafts((prev) => ({
                                 ...prev,
                                 [iso]: {
-                                  ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                  ...(prev[iso] ?? emptyDraft()),
                                   manualFree: e.target.checked,
                                 },
                               }))
@@ -356,7 +387,7 @@ export default function HallintaWeekSchedulePage() {
                                 setDrafts((prev) => ({
                                   ...prev,
                                   [iso]: {
-                                    ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                    ...(prev[iso] ?? emptyDraft()),
                                     start: e.target.value,
                                   },
                                 }))
@@ -373,7 +404,7 @@ export default function HallintaWeekSchedulePage() {
                                 setDrafts((prev) => ({
                                   ...prev,
                                   [iso]: {
-                                    ...(prev[iso] ?? { start: "", end: "", legacy: "", manualFree: false, extraLabel: "", extraTime: "", showExtraOnTv: false }),
+                                    ...(prev[iso] ?? emptyDraft()),
                                     end: e.target.value,
                                   },
                                 }))
@@ -382,6 +413,62 @@ export default function HallintaWeekSchedulePage() {
                           </label>
                         </div>
                       </div>
+                      {personSlug === "joni" && (
+                        <div className="joni-location-row" style={{ marginTop: 10 }}>
+                          <span className="muted">Paikka:</span>
+                          <label className="row muted" style={{ gap: 6 }}>
+                            <input
+                              type="checkbox"
+                              disabled={Boolean(drafts[iso]?.manualFree)}
+                              checked={drafts[iso]?.joniLocation === "home"}
+                              onChange={() =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? emptyDraft()),
+                                    joniLocation: prev[iso]?.joniLocation === "home" ? "" : "home",
+                                  },
+                                }))
+                              }
+                            />
+                            Kotona
+                          </label>
+                          <label className="row muted" style={{ gap: 6 }}>
+                            <input
+                              type="checkbox"
+                              disabled={Boolean(drafts[iso]?.manualFree)}
+                              checked={drafts[iso]?.joniLocation === "office"}
+                              onChange={() =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? emptyDraft()),
+                                    joniLocation: prev[iso]?.joniLocation === "office" ? "" : "office",
+                                  },
+                                }))
+                              }
+                            />
+                            Toimistolla
+                          </label>
+                          <label className="row muted" style={{ gap: 6 }}>
+                            <input
+                              type="checkbox"
+                              disabled={Boolean(drafts[iso]?.manualFree)}
+                              checked={drafts[iso]?.joniLocation === "tampere"}
+                              onChange={() =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? emptyDraft()),
+                                    joniLocation: prev[iso]?.joniLocation === "tampere" ? "" : "tampere",
+                                  },
+                                }))
+                              }
+                            />
+                            Tampereella
+                          </label>
+                        </div>
+                      )}
                       {personSlug === "been" && (
                         <div className="been-extra-row" style={{ marginTop: 10 }}>
                           <label className="muted small-label">
@@ -393,15 +480,7 @@ export default function HallintaWeekSchedulePage() {
                                 setDrafts((prev) => ({
                                   ...prev,
                                   [iso]: {
-                                    ...(prev[iso] ?? {
-                                      start: "",
-                                      end: "",
-                                      legacy: "",
-                                      manualFree: false,
-                                      extraLabel: "",
-                                      extraTime: "",
-                                      showExtraOnTv: false,
-                                    }),
+                                    ...(prev[iso] ?? emptyDraft()),
                                     extraLabel: e.target.value,
                                   },
                                 }))
@@ -418,15 +497,7 @@ export default function HallintaWeekSchedulePage() {
                                 setDrafts((prev) => ({
                                   ...prev,
                                   [iso]: {
-                                    ...(prev[iso] ?? {
-                                      start: "",
-                                      end: "",
-                                      legacy: "",
-                                      manualFree: false,
-                                      extraLabel: "",
-                                      extraTime: "",
-                                      showExtraOnTv: false,
-                                    }),
+                                    ...(prev[iso] ?? emptyDraft()),
                                     extraTime: e.target.value,
                                   },
                                 }))
@@ -441,15 +512,7 @@ export default function HallintaWeekSchedulePage() {
                                 setDrafts((prev) => ({
                                   ...prev,
                                   [iso]: {
-                                    ...(prev[iso] ?? {
-                                      start: "",
-                                      end: "",
-                                      legacy: "",
-                                      manualFree: false,
-                                      extraLabel: "",
-                                      extraTime: "",
-                                      showExtraOnTv: false,
-                                    }),
+                                    ...(prev[iso] ?? emptyDraft()),
                                     showExtraOnTv: e.target.checked,
                                   },
                                 }))
