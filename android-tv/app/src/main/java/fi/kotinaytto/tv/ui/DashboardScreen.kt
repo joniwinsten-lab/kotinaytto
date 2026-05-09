@@ -47,6 +47,7 @@ import fi.kotinaytto.tv.data.DashboardState
 import fi.kotinaytto.tv.data.ScheduleEntryDto
 import fi.kotinaytto.tv.data.formatScheduleLineForTv
 import fi.kotinaytto.tv.data.scheduleExtraLineForTv
+import fi.kotinaytto.tv.data.scheduleLocationLineForTv
 import fi.kotinaytto.tv.data.ShoppingItemDto
 import fi.kotinaytto.tv.data.currentIsDay
 import fi.kotinaytto.tv.data.currentWeatherCode
@@ -409,10 +410,12 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
                         modifier = Modifier.weight(1f),
                     )
                     val extra = scheduleExtraLineForTv(e.notes)
-                    if (!extra.isNullOrBlank()) {
+                    val location = scheduleLocationLineForTv(e.notes)
+                    val trailing = extra ?: location
+                    if (!trailing.isNullOrBlank()) {
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = extra,
+                            text = trailing,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.labelSmall,

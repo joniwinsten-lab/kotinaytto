@@ -8,6 +8,7 @@ import kotlinx.serialization.json.jsonPrimitive
 
 private val SHIFT_PATTERN = Regex("""^\s*(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})\s*$""")
 private const val EXTRA_NOTES_PREFIX = "koti_extra:"
+private const val JONI_LOCATION_PREFIX = "koti_joni_location:"
 private val notesJson = Json { ignoreUnknownKeys = true }
 
 fun formatScheduleLineForTv(entryDate: String, title: String): String {
@@ -32,6 +33,17 @@ fun scheduleExtraLineForTv(notes: String?): String? {
         label.isNotBlank() && time.isNotBlank() -> "$label $time"
         label.isNotBlank() -> label
         time.isNotBlank() -> time
+        else -> null
+    }
+}
+
+fun scheduleLocationLineForTv(notes: String?): String? {
+    val raw = notes?.trim()?.lowercase() ?: return null
+    if (!raw.startsWith(JONI_LOCATION_PREFIX)) return null
+    return when (raw.removePrefix(JONI_LOCATION_PREFIX).trim()) {
+        "home" -> "Kotona"
+        "office" -> "Toimistolla"
+        "tampere" -> "Tampereella"
         else -> null
     }
 }

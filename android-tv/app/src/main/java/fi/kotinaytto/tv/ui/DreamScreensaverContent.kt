@@ -35,6 +35,7 @@ import fi.kotinaytto.tv.data.currentTemperature
 import fi.kotinaytto.tv.data.currentWeatherCode
 import fi.kotinaytto.tv.data.hourlyForecastChips
 import fi.kotinaytto.tv.data.formatScheduleLineForTv
+import fi.kotinaytto.tv.data.scheduleLocationLineForTv
 import fi.kotinaytto.tv.data.toDashboardState
 import fi.kotinaytto.tv.data.todaySunClock
 import fi.kotinaytto.tv.data.todaySunTimesMinutes
@@ -346,13 +347,26 @@ private fun FamilyHudColumn(state: DashboardState) {
             .sortedWith(compareBy({ it.entryDate }, { it.personSlug }))
             .take(3)
             .forEach { e ->
-                Text(
-                    text = formatScheduleLineForTv(e.entryDate, e.title),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFCFD8DC),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = formatScheduleLineForTv(e.entryDate, e.title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFCFD8DC),
+                    )
+                    val loc = scheduleLocationLineForTv(e.notes)
+                    if (!loc.isNullOrBlank()) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = loc,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFB0BEC5),
+                        )
+                    }
+                }
             }
         if (state.schedules.isEmpty()) {
             Text("—", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF78909C))
