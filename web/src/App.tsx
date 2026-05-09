@@ -33,8 +33,9 @@ export default function App() {
               </li>
             </ul>
             <p className="muted">
-              Polku: <strong>Settings → Secrets and variables → Actions → New repository secret</strong>. Sen jälkeen{" "}
-              <strong>Actions → Web GitHub Pages → Run workflow</strong> (tai työnna commit <code>web/</code>‑kansioon).
+              Vaihtoehdot: <strong>VITE_SUPABASE_URL</strong> + <strong>VITE_SUPABASE_ANON_KEY</strong>, tai sama kuin Supabase-deployissa:{" "}
+              <strong>SUPABASE_ACCESS_TOKEN</strong> + <strong>SUPABASE_PROJECT_REF</strong> (workflow hakee anon-avaimen). Sen jälkeen{" "}
+              <strong>Actions → Web GitHub Pages → Run workflow</strong>.
             </p>
           </>
         ) : (
