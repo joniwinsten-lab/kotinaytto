@@ -1,9 +1,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// YLE vaatii publisherIds (vanha ?language=fi palauttaa 400).
 const RSS_URLS = [
-  { source: "Yle", url: "https://feeds.yle.fi/uutiset/v1/recent.rss?language=fi" },
+  {
+    source: "Yle",
+    url: "https://feeds.yle.fi/uutiset/v1/recent.rss?publisherIds=YLE_UUTISET",
+  },
 ];
+
+const rssFetchInit: RequestInit = {
+  headers: {
+    "User-Agent": "Kodinaytto/1.0 (RSS; github.com/joniwinsten-lab/kotinaytto)",
+    Accept: "application/rss+xml, application/xml, text/xml, */*",
+  },
+};
 
 async function parseRss(xml: string, source: string) {
   const items: { title: string; url?: string; published_at?: string }[] = [];
@@ -53,7 +64,7 @@ Deno.serve(async (req) => {
 
   for (const feed of RSS_URLS) {
     try {
-      const res = await fetch(feed.url);
+      const res = await fetch(feed.url, rssFetchInit);
       const xml = await res.text();
       const parsed = await parseRss(xml, feed.source);
       aggregated.push(...parsed);
