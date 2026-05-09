@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.jsonObject
 
 class DashboardViewModel(
     private val repository: DashboardRepository = DashboardRepository(),
@@ -39,7 +40,15 @@ class DashboardViewModel(
     private suspend fun refreshAll() {
         repository.fetchDashboard()
             .onSuccess { json ->
-                _state.value = json.toDashboardState().copy(error = null)
+                var state = json.toDashboardState().copy(error = null)
+                val wp = state.weatherPayload
+                if (wp != null && wp["hourly"]?.jsonObject == null) {
+                    val lat = state.family?.homeLatitude ?: 60.17
+                    val lon = state.family?.homeLongitude ?: 24.94
+                    repository.fetchOpenMeteoForecast(latitude = lat, longitude = lon)
+                        .onSuccess { om -> state = state.copy(weatherPayload = om) }
+                }
+                _state.value = state
             }
             .onFailure { e ->
                 _state.update { it.copy(error = e.message ?: "Virhe") }

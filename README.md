@@ -93,19 +93,53 @@ Tuotanto: `npm run build` → `web/dist` staattisena hostingina (Vercel, Netlify
 2. Käännä (JDK **17 tai 21**, ei Java 25 Gradle 8.7 -yhteensopivuuden takia):
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # macOS
 cd android-tv
-./gradlew :app:assembleDebug
+./scripts/build-debug.sh
 ```
+
+*(Tai käsin: `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` ja `./gradlew :app:assembleDebug`.)*
 
 APK: `android-tv/app/build/outputs/apk/debug/app-debug.apk`.
 
-3. **Sideload Shieldille**: `adb connect <shield-ip>:5555` (kehittäjäasetukset → USB debugging / wireless), sitten `adb install -r app-debug.apk`.
+3. **Sideload Shieldille** (macOS):
+
+```bash
+brew install android-platform-tools   # adb
+cd android-tv
+./scripts/install-shield.sh 192.168.x.x   # Shieldin IP kotiverkosta
+```
+
+**Shieldilla (tiivis polku – valikon nimet voivat vaihdella mallin mukaan):**
+
+1. **Asetukset** → **Laite** / **Device Preferences** → **Tietoja** → paina **Build**-kohtaa monta kertaa (n. 7×), kunnes sanotaan että olet kehittäjä.
+2. Palaa takaisin → **Kehittäjäasetukset** → ota **USB-debuggaus** ja mahdollinen **Langaton debuggaus** / **Verkkodebuggaus** käyttöön.
+3. Jos käytössä on **Langaton debuggaus**, avaa se ja katso **IP-osoite ja portti** (usein muotoa `192.168.x.x`, portti esim. **5555** tai näytössä oma portti). Jos järjestelmä pyytää **paritus**, tee paritus komennolla `adb pair IP:PORT` ja näytöllä näkyvä koodi (Android 11+).
+4. Koneella: `./scripts/install-shield.sh 192.168.x.x` *(tai täysi `osoite:portti`, jos ei ole 5555)*. Vaihtoehtoisesti: `adb connect 192.168.x.x:5555` ja `adb install -r app/build/outputs/apk/debug/app-debug.apk`. Ensimmäisellä kerralla Shield saattaa näyttää hyväksyntädialogin debug-yhteydestä.
+
+*(Vaihtoehto: kopioi `app-debug.apk` USB-tikulle ja asenna Shieldin tiedostonhallinnalla, jos laite sallii tuntemattomat lähteet – polku riippuu Shieldin Android-versiosta.)*
+
+### Esikatselu ulkoasusta (ilman Shieldiä)
+
+- **Android Studio**: avaa [`android-tv/app/src/debug/java/.../HomeScreenPreviews.kt`](android-tv/app/src/debug/java/fi/kotinaytto/tv/ui/preview/HomeScreenPreviews.kt), valitse **`PreviewDashboardTv`** tai **`PreviewDreamTv`** ja käytä **Split / Design** -näkymää (Compose Preview).
+- **Havainnekuva** (ei täsmällinen screenshot, vain tunnelma): [`android-tv/docs/kotinaytto-tv-preview.png`](android-tv/docs/kotinaytto-tv-preview.png).
+
+### Peilaa Shieldin ruutu Macille (ei tarvitse toiseen huoneeseen)
+
+1. **Skripti** [`android-tv/scripts/mirror-shield.sh`](android-tv/scripts/mirror-shield.sh) (käyttää **scrcpy**-työkalua; asenna kerran: `brew install scrcpy`). Kun `adb devices` näyttää `device`:
+
+   ```bash
+   cd android-tv
+   ./scripts/mirror-shield.sh
+   ```
+
+   Oletusosoite ja portti ovat skriptissä (`192.168.1.116:5555`); muu laite tai portti: `./scripts/mirror-shield.sh 192.168.1.x:PORTTI`. Skripti käyttää oletuksena **`--no-audio`** (Shieldin äänipolku kaataa muuten scrcpy:n); lisäargumentit: `./scripts/mirror-shield.sh 192.168.1.116:5555 --record=file.mp4`.
+
+2. **Android Studio**: **Android Studio → Settings** (macOS: **Preferences**) → **Tools → Device Mirroring** → ota käyttöön **Enable mirroring of physical Android devices** (halutessasi myös automaattinen peilaus kun laite yhdistyy / kun sovellus käynnistetään). Varmista että Shield on **adb devices** -listalla, sitten **View → Tool Windows → Running Devices** (tai vastaava) — näet laitteen ruudun Studion sisällä. Langaton ADB riittää, kun yhteys on kunnossa.
 
 ### Autokäynnistys ja näyttö 24/7
 
 - **Launcher**: aseta kotinäyttö-sovellus oletuskäynnistysohjelmaksi (Shield TV:n asetukset → Apps → oletus; laitekohtainen).
-- **Näytönsäästäjä (Daydream)**: tämä repo käyttää täyttä sovellusta dashboardina; erillinen `DreamService` ei ole toteutettu. Voit pitää näytön käynnissä ja himmentää TV:n **Ambient Mode** / virransäästö pois päältä keittiön näytöllä.
+- **Näytönsäästäjä (Daydream)**: sovelluksessa on **`KotiDreamService`** (lista nimellä **Kodinäyttö — maisema**) — sama perhedata ja YoWindow-tyylinen maisematausta kuin dashboardissa. Valitse se Shieldin näytönsäästäjä-asetuksista; dashboard-sovellus voi edelleen olla erikseen käynnistyvänä.
 - **Näyttöpoltto**: käytä tummaa teemaa (sovellus) ja vaihtelevaa taustaa (sää + kuvat) – vähentää kiinteitä kirkkaita elementtejä.
 
 ## 4. Rakenne

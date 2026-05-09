@@ -8,8 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,28 +29,37 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import fi.kotinaytto.tv.data.PhotoDto
+import fi.kotinaytto.tv.data.todaySunClock
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import fi.kotinaytto.tv.BuildConfig
 import fi.kotinaytto.tv.data.DashboardState
-import fi.kotinaytto.tv.data.PhotoDto
 import fi.kotinaytto.tv.data.ScheduleEntryDto
 import fi.kotinaytto.tv.data.ShoppingItemDto
+import fi.kotinaytto.tv.data.currentIsDay
+import fi.kotinaytto.tv.data.currentWeatherCode
+import fi.kotinaytto.tv.data.hourlyForecastChips
+import fi.kotinaytto.tv.data.weatherDescriptionFi
+import fi.kotinaytto.tv.ui.scene.WeatherLandscapeBackdrop
+import fi.kotinaytto.tv.ui.weather.WeatherConditionIcon
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
-import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.random.Random
 
 @Composable
@@ -62,14 +76,21 @@ fun DashboardScreen(vm: DashboardViewModel) {
         }
     }
 
+    DashboardScreenBody(state = state, photoIndex = photoIndex)
+}
+
+@Composable
+internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
+    val photos = state.photos
     val helsinkiHour = ZonedDateTime.now(ZoneId.of("Europe/Helsinki")).hour
     val weatherCode = state.weatherPayload?.currentWeatherCode()
     val isDay = state.weatherPayload?.currentIsDay() ?: (helsinkiHour in 7..20)
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LayeredBackdrop(
+        val hasTicker = state.news.isNotEmpty()
+        val bottomPad = if (hasTicker) 58.dp else 24.dp
+        WeatherLandscapeBackdrop(
             photo = photos.getOrNull(photoIndex % (photos.size.coerceAtLeast(1))),
-            helsinkiHour = helsinkiHour,
             weatherCode = weatherCode,
             isDay = isDay,
         )
@@ -83,7 +104,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = bottomPad),
             horizontalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(
@@ -93,13 +114,11 @@ fun DashboardScreen(vm: DashboardViewModel) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
-                    text = state.family?.name ?: "Kodinäyttö",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
+                DashboardHeaderClock(
+                    subtitle = state.family?.name,
+                    weatherPayload = state.weatherPayload,
                 )
                 WeatherCard(state)
-                NewsCard(state)
             }
 
             Column(
@@ -109,9 +128,9 @@ fun DashboardScreen(vm: DashboardViewModel) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                ScheduleCard("Been – koulu", state.schedules.filter { it.personSlug == "been" })
-                ScheduleCard("Maija – työvuorot", state.schedules.filter { it.personSlug == "maija" })
-                ScheduleCard("Joni – työpäivät", state.schedules.filter { it.personSlug == "joni" })
+                ScheduleCard("Been", state.schedules.filter { it.personSlug == "been" })
+                ScheduleCard("Maija", state.schedules.filter { it.personSlug == "maija" })
+                ScheduleCard("Joni", state.schedules.filter { it.personSlug == "joni" })
             }
 
             Column(
@@ -121,18 +140,31 @@ fun DashboardScreen(vm: DashboardViewModel) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                PhotoOfDayCard(photos = state.photos)
                 ShoppingCard(state.shopping)
                 MealsCard(state)
             }
         }
 
-        if (state.error != null) {
+        if (hasTicker) {
+            NewsTickerBanner(
+                news = state.news,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        val msg = state.error
+        if (msg != null) {
             Text(
-                text = state.error ?: "",
+                text = msg,
                 color = Color(0xFFFFAB91),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp),
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = if (hasTicker) 56.dp else 16.dp,
+                    ),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -140,85 +172,111 @@ fun DashboardScreen(vm: DashboardViewModel) {
 }
 
 @Composable
-private fun LayeredBackdrop(
-    photo: PhotoDto?,
-    helsinkiHour: Int,
-    weatherCode: Int?,
-    isDay: Boolean,
-) {
-    val timeBrush = timeOfDayBrush(helsinkiHour)
-    val weatherTint = weatherTintColor(weatherCode, isDay)
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(timeBrush),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(weatherTint),
-        )
-        val url = photo?.let { publicPhotoUrl(it.storagePath) }
-        if (url != null) {
-            val context = LocalContext.current
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(url)
-                    .crossfade(1200)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+private fun DashboardHeaderClock(subtitle: String?, weatherPayload: JsonObject?) {
+    val zone = ZoneId.of("Europe/Helsinki")
+    var now by remember { mutableStateOf(ZonedDateTime.now(zone)) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000)
+            now = ZonedDateTime.now(zone)
+        }
+    }
+    val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+    val dateFmt = DateTimeFormatter.ofPattern("EEEE d. MMMM", Locale("fi", "FI"))
+    val sun = weatherPayload?.todaySunClock(zone)
+    Row(verticalAlignment = Alignment.Bottom) {
+        Column {
+            Text(
+                text = now.format(timeFmt),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0x66050810)),
+            Text(
+                text = now.format(dateFmt).replaceFirstChar { it.titlecase(Locale("fi", "FI")) },
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFFCFD8DC),
             )
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color(0xFF90A4AE),
+                )
+            }
+        }
+        if (sun != null) {
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = "↑ ${sun.sunriseHm}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFFFFCC80),
+                )
+                Text(
+                    text = "↓ ${sun.sunsetHm}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF90CAF9),
+                )
+            }
         }
     }
 }
 
-private fun publicPhotoUrl(path: String): String {
-    val base = BuildConfig.SUPABASE_URL.trimEnd('/')
-    return "$base/storage/v1/object/public/family_photos/$path"
-}
-
-private fun timeOfDayBrush(hour: Int): Brush {
-    val (c0, c1) = when (hour) {
-        in 5..8 -> Color(0xFF1A237E) to Color(0xFFFFB74D)
-        in 9..15 -> Color(0xFF0D47A1) to Color(0xFF64B5F6)
-        in 16..20 -> Color(0xFF311B92) to Color(0xFFFF8A65)
-        in 21..23, 0 -> Color(0xFF020617) to Color(0xFF1E3A5F)
-        else -> Color(0xFF020617) to Color(0xFF263238)
+@Composable
+private fun PhotoOfDayCard(photos: List<PhotoDto>) {
+    var pick by remember { mutableStateOf<PhotoDto?>(null) }
+    LaunchedEffect(photos) {
+        if (photos.isEmpty()) {
+            pick = null
+            return@LaunchedEffect
+        }
+        pick = photos.random()
+        while (true) {
+            delay(180_000L)
+            pick = photos.random()
+        }
     }
-    return Brush.verticalGradient(listOf(c0, c1))
-}
 
-private fun weatherTintColor(code: Int?, isDay: Boolean): Color {
-    if (code == null) return Color.Transparent
-    val alpha = if (isDay) 0.18f else 0.28f
-    return when (code) {
-        0, 1 -> Color(0xFFFFF59D).copy(alpha = alpha * 0.6f)
-        in 51..67, 80..82 -> Color(0xFF546E7A).copy(alpha = alpha)
-        in 71..77, 85..86 -> Color(0xFFE3F2FD).copy(alpha = alpha)
-        in 95..99 -> Color(0xFF5C6BC0).copy(alpha = alpha * 1.2f)
-        else -> Color(0xFF37474F).copy(alpha = alpha * 0.5f)
-    }
-}
-
-private fun JsonObject.currentWeatherCode(): Int? {
-    val current = this["current"]?.jsonObject ?: return null
-    return current["weather_code"]?.jsonPrimitive?.intOrNull
-}
-
-private fun JsonObject.currentIsDay(): Boolean? {
-    val current = this["current"]?.jsonObject ?: return null
-    return when (val v = current["is_day"]) {
-        is JsonPrimitive -> v.intOrNull?.let { it == 1 }
-        else -> null
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = "Päivän kuva",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(10.dp))
+            val photo = pick
+            when {
+                photo == null -> {
+                    Text(
+                        text = "Ei kuvia vielä. Lisää kuvia verkossa.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFB0BEC5),
+                    )
+                }
+                else -> {
+                    val context = LocalContext.current
+                    val url = familyPhotoPublicUrl(photo.storagePath)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(8.dp)),
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(url)
+                                .crossfade(500)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -228,58 +286,79 @@ private fun WeatherCard(state: DashboardState) {
     val current = payload?.get("current")?.jsonObject
     val temp = current?.get("temperature_2m")?.jsonPrimitive?.doubleOrNull
     val code = payload?.currentWeatherCode()
+    val helsinki = ZoneId.of("Europe/Helsinki")
+    val isDay = payload?.currentIsDay() ?: (ZonedDateTime.now(helsinki).hour in 7..20)
     val label = state.family?.weatherLocationLabel ?: "Sää"
+    val chips = payload?.hourlyForecastChips(zone = helsinki) ?: emptyList()
 
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
         Column(Modifier.padding(16.dp)) {
             Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             if (temp != null) {
-                Text(
-                    text = "${"%.0f".format(temp)} °C  (${weatherLabelFi(code)})",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WeatherConditionIcon(
+                        code = code,
+                        isDay = isDay,
+                        modifier = Modifier.size(56.dp),
+                        tint = Color(0xFFFFB74D),
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(
+                            text = "${"%.0f".format(temp)} °C",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = weatherDescriptionFi(code),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFFCFD8DC),
+                        )
+                    }
+                }
+                if (chips.isNotEmpty()) {
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = "Seuraavat",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFF90A4AE),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        chips.forEach { chip ->
+                            val chipIsDay = ZonedDateTime.now(helsinki)
+                                .plusHours(chip.offsetHours.toLong()).hour in 7..20
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.widthIn(min = 56.dp),
+                            ) {
+                                WeatherConditionIcon(
+                                    code = chip.weatherCode,
+                                    isDay = chipIsDay,
+                                    modifier = Modifier.size(30.dp),
+                                    tint = Color(0xFFB3E5FC),
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = chip.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFB0BEC5),
+                                )
+                                Text(
+                                    text = chip.temperatureC?.let { "${"%.0f".format(it)}°" } ?: "—",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
+                    }
+                }
             } else {
                 Text(
-                    text = "Säädataa ei vielä ole. Aja sync-weather Edge Function.",
+                    text = "Säädataa ei vielä ole. Aja sync-weather Edge Function (sisältää nyt tuntiennusteen).",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-            }
-        }
-    }
-}
-
-private fun weatherLabelFi(code: Int?): String = when (code) {
-    null -> "—"
-    0 -> "selkeää"
-    1, 2, 3 -> "puolipilvistä"
-    in 45..48 -> "sumua"
-    in 51..57 -> "sadetta"
-    in 61..67 -> "sadetta"
-    in 71..77 -> "lumisadetta"
-    in 80..82 -> "kuuroja"
-    in 85..86 -> "lumikuuroja"
-    in 95..99 -> "ukkosmyrsky"
-    else -> "vaihtelevaa"
-}
-
-@Composable
-private fun NewsCard(state: DashboardState) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Uutiset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            state.news.take(12).forEach { n ->
-                Text(
-                    text = "• ${n.title}",
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-            }
-            if (state.news.isEmpty()) {
-                Text("Ei uutisia vielä. Aja sync-rss.", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
