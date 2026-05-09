@@ -32,8 +32,10 @@ export default function HomePage() {
 
   return (
     <div className="page">
-      <h1>Kodinäyttö</h1>
-      <p className="muted">Puhelinkäyttö: päivitä listoja ja aikatauluja.</p>
+      <h1>Vanhat linkit (token)</h1>
+      <p className="muted">
+        Suositeltu tapa: <a href="/">etusivun PIN-koodi</a>.
+      </p>
 
       {tokenOrHint(shared, "/kauppa", "Kauppalista")}
       {tokenOrHint(been, "/aikataulu/been", "Been – koulu")}
@@ -48,6 +50,9 @@ export default function HomePage() {
           <code>families.read_token</code> -arvoa (Android <code>local.properties</code>).
         </p>
       </div>
+      <p className="muted">
+        <a href="/">← PIN-kirjautuminen</a>
+      </p>
     </div>
   );
 }

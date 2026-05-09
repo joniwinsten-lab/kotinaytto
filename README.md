@@ -39,7 +39,12 @@ supabase db push
 supabase functions deploy sync-rss
 supabase functions deploy sync-weather
 supabase functions deploy photo-ingest
+supabase functions deploy photo-delete
 ```
+
+Uusi migraatio **`supabase/migrations/20250509140000_editor_pins.sql`** lisää PIN-kirjautumisen (`exchange_editor_pin`). Aja `supabase db push` tai kopioi SQL Dashboardiin.
+
+Alustavat PINit (vaihda tarvittaessa taulussa `editor_pins`): **Maija 2505**, **Joni 0407**, **Bee 0304**.
 
 ## 1. Supabase (ajon jälkeen)
 
@@ -77,15 +82,32 @@ curl -sS -X POST "$PROJECT/functions/v1/sync-weather" \
 
 ## 2. Web (puhelin)
 
+### Hallinta PIN-koodilla (suositeltu)
+
+1. Etusivu `/` → syötä oma **PIN** (Maija **2505**, Joni **0407**, Bee **0304** — vaihdettavissa `editor_pins`-taulussa).
+2. **Maija / Joni:** oma aikataulu (tänään + 7 päivää; sunnuntai + Suomen arkipyhät automaattisesti **Vapaa**), kauppalista, viikon lounaat, kuva-arkisto.
+3. **Bee:** Been aikataulu (sama kalenterilogiikka; arkisin oletusajat muistetaan selaimessa), kauppalista, **lounastoiveet**, kuva-arkisto.
+4. **Kaikki** voivat lisätä ja poistaa kuvia arkistosta (Edge Function **`photo-delete`**).
+
+Vanhat **token-linkit** löytyvät polusta **`/linkit`** (`?t=` ‑URLit kuten ennen).
+
 ```bash
 cd web
 cp ../env.example .env
-# täytä VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, tokenit
+# täytä VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (tokenit valinnaisia PIN-tilan takia)
 npm install
 npm run dev
 ```
 
-Tuotanto: `npm run build` → `web/dist` staattisena hostingina (Vercel, Netlify, oma palvelin).
+### GitHub Pages (Gitin kautta)
+
+Workflow **[Web GitHub Pages](.github/workflows/web-pages.yml)** buildaa `web/dist`:in ja työntää **`gh-pages`** ‑haaran.
+
+1. Repo → **Settings** → **Pages** → Source: branch **`gh-pages`** / **`/`** (tai `/root`).
+2. GitHub → **Settings** → **Secrets and variables** → **Actions** → lisää **`VITE_SUPABASE_URL`** ja **`VITE_SUPABASE_ANON_KEY`** (sama julkinen anon kuin webille).
+3. Sivun osoite on muotoa `https://<org>.github.io/<repo>/` — build käyttää automaattisesti polkua `/<repo>/`.
+
+Tuotanto muualle: `npm run build` → `web/dist` (aseta tarvittaessa `VITE_BASE_PATH=/` tai alikansio).
 
 ## 3. Android TV (Shield)
 

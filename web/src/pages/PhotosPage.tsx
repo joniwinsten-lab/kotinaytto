@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useOutletContext, useSearchParams } from "react-router-dom";
+import type { EditorCaps } from "../lib/editorSession";
 import { functionsBase, publicPhotoUrl, supabase } from "../lib/supabase";
 
 type Photo = {
@@ -9,15 +10,20 @@ type Photo = {
 };
 
 function useSharedToken(): string {
+  const caps = useOutletContext<EditorCaps | undefined>();
   const [sp] = useSearchParams();
+  const fromHallinta = caps?.sharedSecret?.trim();
+  if (fromHallinta) return fromHallinta;
   return (sp.get("t") || import.meta.env.VITE_TOKEN_SHARED || "").trim();
 }
 
 export default function PhotosPage() {
+  const capsCtx = useOutletContext<EditorCaps | undefined>();
   const token = useSharedToken();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [busyDel, setBusyDel] = useState<string | null>(null);
   const [by, setBy] = useState("");
 
   const canEdit = token.length > 0;
@@ -66,6 +72,35 @@ export default function PhotosPage() {
     }
   };
 
+  const removePhoto = async (photoId: string) => {
+    if (!canEdit) return;
+    const urlBase = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!urlBase || !key) return;
+    setBusyDel(photoId);
+    setError(null);
+    try {
+      const res = await fetch(`${functionsBase()}/photo-delete`, {
+        method: "POST",
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token, photo_id: photoId }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Poisto epäonnistui");
+    } finally {
+      setBusyDel(null);
+    }
+  };
+
   if (!canEdit) {
     return (
       <div className="page">
@@ -76,15 +111,20 @@ export default function PhotosPage() {
     );
   }
 
+  const back = capsCtx ? "/hallinta" : "/linkit";
+  const backLabel = capsCtx ? "Hallinta" : "Linkit";
+
   return (
     <div className="page">
-      <h1>Perhekuvat</h1>
+      <h1>Päivän kuva ‑arkisto</h1>
       <p className="muted">
-        <Link to="/">← Etusivu</Link>
+        Kaikki voivat lisätä ja poistaa kuvia. Ne kiertävät TV:ssä ja &quot;Päivän kuva&quot; ‑laatikossa.
+      </p>
+      <p className="muted">
+        <Link to={back}>← {backLabel}</Link>
       </p>
 
       <div className="card">
-        <p className="muted">Kuva tallennetaan ja näkyy TV:n taustakiertossa (satunnaisesti).</p>
         <div className="row" style={{ marginBottom: 10 }}>
           <input type="text" placeholder="been / maija / joni (valinnainen)" value={by} onChange={(e) => setBy(e.target.value)} />
         </div>
@@ -105,14 +145,19 @@ export default function PhotosPage() {
 
       <div className="grid2">
         {photos.map((p) => (
-          <div key={p.id} className="card" style={{ padding: 8 }}>
+          <div key={p.id} className="card photo-card" style={{ padding: 8 }}>
             <img
               src={publicPhotoUrl(p.storage_path)}
               alt=""
               style={{ width: "100%", borderRadius: 10, display: "block" }}
               loading="lazy"
             />
-            {p.added_by_slug && <div className="muted">{p.added_by_slug}</div>}
+            <div className="row photo-card-actions" style={{ marginTop: 8, justifyContent: "space-between" }}>
+              <span className="muted">{p.added_by_slug ?? "—"}</span>
+              <button type="button" className="secondary touch-btn-small" disabled={busyDel === p.id} onClick={() => void removePhoto(p.id)}>
+                Poista
+              </button>
+            </div>
           </div>
         ))}
       </div>

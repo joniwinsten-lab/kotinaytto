@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useOutletContext, useSearchParams } from "react-router-dom";
+import type { EditorCaps } from "../lib/editorSession";
 import { supabase } from "../lib/supabase";
 
 type Item = {
@@ -11,11 +12,15 @@ type Item = {
 };
 
 function useSharedToken(): string {
+  const caps = useOutletContext<EditorCaps | undefined>();
   const [sp] = useSearchParams();
+  const fromHallinta = caps?.sharedSecret?.trim();
+  if (fromHallinta) return fromHallinta;
   return (sp.get("t") || import.meta.env.VITE_TOKEN_SHARED || "").trim();
 }
 
 export default function ShoppingPage() {
+  const capsCtx = useOutletContext<EditorCaps | undefined>();
   const token = useSharedToken();
   const [items, setItems] = useState<Item[]>([]);
   const [title, setTitle] = useState("");
@@ -100,7 +105,7 @@ export default function ShoppingPage() {
       <div className="page">
         <h1>Kauppalista</h1>
         <p className="muted">Lisää osoitteeseen ?t=YHTEINEN_TOKEN tai aseta VITE_TOKEN_SHARED .env-tiedostoon.</p>
-        <Link to="/">← Etusivu</Link>
+        <Link to="/linkit">← Linkit</Link>
       </div>
     );
   }
@@ -109,7 +114,7 @@ export default function ShoppingPage() {
     <div className="page">
       <h1>Kauppalista</h1>
       <p className="muted">
-        <Link to="/">← Etusivu</Link>
+        <Link to={capsCtx ? "/hallinta" : "/linkit"}>← {capsCtx ? "Hallinta" : "Linkit"}</Link>
       </p>
 
       <div className="card">

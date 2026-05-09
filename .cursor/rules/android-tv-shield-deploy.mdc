@@ -1,0 +1,14 @@
+---
+description: After Android TV app changes, install on Shield and relaunch
+globs: android-tv/**/*
+alwaysApply: false
+---
+
+# Android TV → Shield
+
+Kun muokkaat `android-tv/`-projektia ja muutokset ovat valmiit:
+
+1. Aja projektijuuresta tai `android-tv/`-kansiosta: `./gradlew :app:installDebug`
+2. Käynnistä sovellus uudestaan: `adb shell am force-stop fi.kotinaytto.tv && adb shell am start -n fi.kotinaytto.tv/.MainActivity`
+
+Käytä `adb devices`-listassa näkyvää laitetta (jos vain yksi, pelkkä `adb` riittää). Älä jätä tätä käyttäjän tehtäväksi, ellei laite ole kytkemättä.

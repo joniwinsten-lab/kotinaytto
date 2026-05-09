@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fi.kotinaytto.tv.data.DashboardState
 import fi.kotinaytto.tv.data.ScheduleEntryDto
+import fi.kotinaytto.tv.data.formatScheduleLineForTv
 import fi.kotinaytto.tv.data.ShoppingItemDto
 import fi.kotinaytto.tv.data.currentIsDay
 import fi.kotinaytto.tv.data.currentWeatherCode
@@ -184,41 +185,41 @@ private fun DashboardHeaderClock(subtitle: String?, weatherPayload: JsonObject?)
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
     val dateFmt = DateTimeFormatter.ofPattern("EEEE d. MMMM", Locale("fi", "FI"))
     val sun = weatherPayload?.todaySunClock(zone)
-    Row(verticalAlignment = Alignment.Bottom) {
-        Column {
+    Column {
+        Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = now.format(timeFmt),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
             )
-            Text(
-                text = now.format(dateFmt).replaceFirstChar { it.titlecase(Locale("fi", "FI")) },
-                style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFFCFD8DC),
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color(0xFF90A4AE),
-                )
+            if (sun != null) {
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "↑ ${sun.sunriseHm}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFFFFCC80),
+                    )
+                    Text(
+                        text = "↓ ${sun.sunsetHm}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF90CAF9),
+                    )
+                }
             }
         }
-        if (sun != null) {
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = "↑ ${sun.sunriseHm}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFFFCC80),
-                )
-                Text(
-                    text = "↓ ${sun.sunsetHm}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF90CAF9),
-                )
-            }
+        Text(
+            text = now.format(dateFmt).replaceFirstChar { it.titlecase(Locale("fi", "FI")) },
+            style = MaterialTheme.typography.titleMedium,
+            color = Color(0xFFCFD8DC),
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelLarge,
+                color = Color(0xFF90A4AE),
+            )
         }
     }
 }
@@ -372,7 +373,7 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
             Spacer(Modifier.height(8.dp))
             items.take(12).forEach { e ->
                 Text(
-                    text = "${e.entryDate}: ${e.title}",
+                    text = formatScheduleLineForTv(e.entryDate, e.title),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,

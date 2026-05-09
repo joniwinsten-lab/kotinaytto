@@ -34,6 +34,7 @@ import fi.kotinaytto.tv.data.currentIsDay
 import fi.kotinaytto.tv.data.currentTemperature
 import fi.kotinaytto.tv.data.currentWeatherCode
 import fi.kotinaytto.tv.data.hourlyForecastChips
+import fi.kotinaytto.tv.data.formatScheduleLineForTv
 import fi.kotinaytto.tv.data.toDashboardState
 import fi.kotinaytto.tv.data.todaySunClock
 import fi.kotinaytto.tv.data.weatherDescriptionFi
@@ -178,42 +179,42 @@ private fun ClockColumn(subtitle: String?, weatherPayload: JsonObject?) {
     val fiLocale = remember { Locale("fi", "FI") }
     val sun = weatherPayload?.todaySunClock(tz)
 
-    Row(verticalAlignment = Alignment.Bottom) {
-        Column {
+    Column {
+        Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = tick.format(timeFmt),
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFECEFF1),
             )
-            Text(
-                text = tick.format(dateFmt).replaceFirstChar { it.titlecase(fiLocale) },
-                style = MaterialTheme.typography.titleLarge,
-                color = Color(0xFFCFD8DC),
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color(0xFF90A4AE),
-                )
+            if (sun != null) {
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "↑ ${sun.sunriseHm}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFFFFCC80),
+                    )
+                    Text(
+                        text = "↓ ${sun.sunsetHm}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF90CAF9),
+                    )
+                }
             }
         }
-        if (sun != null) {
-            Spacer(Modifier.width(20.dp))
-            Column {
-                Text(
-                    text = "↑ ${sun.sunriseHm}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFFFCC80),
-                )
-                Text(
-                    text = "↓ ${sun.sunsetHm}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF90CAF9),
-                )
-            }
+        Text(
+            text = tick.format(dateFmt).replaceFirstChar { it.titlecase(fiLocale) },
+            style = MaterialTheme.typography.titleLarge,
+            color = Color(0xFFCFD8DC),
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelLarge,
+                color = Color(0xFF90A4AE),
+            )
         }
     }
 }
@@ -334,7 +335,7 @@ private fun FamilyHudColumn(state: DashboardState) {
             .take(3)
             .forEach { e ->
                 Text(
-                    text = "${e.entryDate}: ${e.title}",
+                    text = formatScheduleLineForTv(e.entryDate, e.title),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,

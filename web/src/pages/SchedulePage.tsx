@@ -100,7 +100,7 @@ export default function SchedulePage() {
     return (
       <div className="page">
         <p>Tuntematon osoite.</p>
-        <Link to="/">← Etusivu</Link>
+        <Link to="/linkit">← Linkit</Link>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function SchedulePage() {
       <div className="page">
         <h1>{heading}</h1>
         <p className="muted">Lisää osoitteeseen ?t=TOKEN tai aseta VITE_TOKEN_* .env-tiedostoon.</p>
-        <Link to="/">← Etusivu</Link>
+        <Link to="/linkit">← Linkit</Link>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function SchedulePage() {
     <div className="page">
       <h1>{heading}</h1>
       <p className="muted">
-        <Link to="/">← Etusivu</Link>
+        <Link to="/linkit">← Linkit</Link>
       </p>
 
       <div className="card">
