@@ -89,8 +89,9 @@ fun NewsTickerBanner(
                     Modifier.graphicsLayer { translationX = offset },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = blockText, style = style, maxLines = 1)
-                    Text(text = blockText, style = style, maxLines = 1)
+                    repeat(4) {
+                        Text(text = blockText, style = style, maxLines = 1)
+                    }
                 }
             }
         }
