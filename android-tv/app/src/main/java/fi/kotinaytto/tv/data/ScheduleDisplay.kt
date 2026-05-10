@@ -9,6 +9,7 @@ import kotlinx.serialization.json.jsonPrimitive
 private val SHIFT_PATTERN = Regex("""^\s*(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})\s*$""")
 private const val EXTRA_NOTES_PREFIX = "koti_extra:"
 private const val JONI_LOCATION_PREFIX = "koti_joni_location:"
+private const val MAIJA_LOCATION_PREFIX = "koti_maija_location:"
 private val notesJson = Json { ignoreUnknownKeys = true }
 
 fun formatScheduleLineForTv(entryDate: String, title: String): String {
@@ -47,6 +48,32 @@ fun scheduleLocationLineForTv(notes: String?): String? {
         else -> null
     }
 }
+
+fun scheduleMaijaLocationLineForTv(notes: String?): String? {
+    val raw = notes?.trim() ?: return null
+    if (!raw.startsWith(MAIJA_LOCATION_PREFIX)) return null
+    val payload = raw.removePrefix(MAIJA_LOCATION_PREFIX)
+    val obj = runCatching { notesJson.parseToJsonElement(payload).jsonObject }.getOrNull() ?: return null
+    val preset = obj["preset"]?.jsonPrimitive?.contentOrNull?.trim()?.lowercase().orEmpty()
+    val custom = obj["custom"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+    val presetLabel = when (preset) {
+        "arkadia" -> "Arkadia"
+        "kasarmitori" -> "Kasarmitori"
+        "taivallahti" -> "Taivallahti"
+        else -> ""
+    }
+    return when {
+        presetLabel.isNotBlank() && custom.isNotBlank() -> "$presetLabel · $custom"
+        presetLabel.isNotBlank() -> presetLabel
+        custom.isNotBlank() -> custom
+        else -> null
+    }
+}
+
+fun scheduleLocationSuffixForTv(notes: String?): String? =
+    scheduleExtraLineForTv(notes)
+        ?: scheduleLocationLineForTv(notes)
+        ?: scheduleMaijaLocationLineForTv(notes)
 
 private fun compactDayMonthFi(iso: String): String {
     val parts = iso.split("-")

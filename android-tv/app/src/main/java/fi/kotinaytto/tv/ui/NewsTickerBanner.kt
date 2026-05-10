@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,11 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import fi.kotinaytto.tv.data.NewsItemDto
+import kotlin.math.ceil
 
 private val wsRegex = Regex("\\s+")
 
@@ -61,7 +64,6 @@ fun NewsTickerBanner(
         measurer.measure(AnnotatedString(blockText), style, maxLines = 1)
     }
     val segmentW = layout.size.width.toFloat().coerceAtLeast(1f)
-    // Hieman ripeämpi nopeus: pitkäkin syöte pysyy elävänä.
     val durationMs = (segmentW / 58f * 1000).toInt().coerceIn(12_000, 220_000)
     val infiniteTransition = rememberInfiniteTransition(label = "newsTicker")
     val offset by infiniteTransition.animateFloat(
@@ -73,12 +75,14 @@ fun NewsTickerBanner(
         ),
         label = "scroll",
     )
+    val density = LocalDensity.current
+
     Box(
         modifier
             .fillMaxWidth()
             .height(46.dp)
             .background(Color(0xEE0A1524))
-            .clip(RoundedCornerShape(0.dp))
+            .clip(RoundedCornerShape(0.dp)),
     ) {
         Row(
             Modifier
@@ -93,17 +97,23 @@ fun NewsTickerBanner(
                 color = Color(0xFFFFB74D),
                 modifier = Modifier.padding(end = 14.dp),
             )
-            Box(
+            BoxWithConstraints(
                 Modifier
                     .weight(1f)
+                    .fillMaxWidth()
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(0.dp))
+                    .clip(RoundedCornerShape(0.dp)),
             ) {
+                val viewportPx = with(density) { maxWidth.toPx() }.coerceAtLeast(0f)
+                val copyCount = remember(blockText, segmentW, viewportPx) {
+                    if (viewportPx <= 0f) 4
+                    else ceil((viewportPx + segmentW) / segmentW).toInt().coerceAtLeast(2) + 1
+                }
                 Row(
                     Modifier.graphicsLayer { translationX = offset },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    repeat(4) {
+                    repeat(copyCount) {
                         Text(text = blockText, style = style, maxLines = 1)
                     }
                 }

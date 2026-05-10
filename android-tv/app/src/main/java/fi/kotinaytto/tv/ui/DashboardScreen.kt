@@ -46,8 +46,7 @@ import androidx.compose.ui.unit.dp
 import fi.kotinaytto.tv.data.DashboardState
 import fi.kotinaytto.tv.data.ScheduleEntryDto
 import fi.kotinaytto.tv.data.formatScheduleLineForTv
-import fi.kotinaytto.tv.data.scheduleExtraLineForTv
-import fi.kotinaytto.tv.data.scheduleLocationLineForTv
+import fi.kotinaytto.tv.data.scheduleLocationSuffixForTv
 import fi.kotinaytto.tv.data.ShoppingItemDto
 import fi.kotinaytto.tv.data.currentIsDay
 import fi.kotinaytto.tv.data.currentWeatherCode
@@ -78,7 +77,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
     LaunchedEffect(photos) {
         if (photos.isEmpty()) return@LaunchedEffect
         while (true) {
-            kotlinx.coroutines.delay(35_000L)
+            kotlinx.coroutines.delay(3_600_000L)
             photoIndex = Random.nextInt(photos.size)
         }
     }
@@ -252,7 +251,7 @@ private fun PhotoOfDayCard(photos: List<PhotoDto>) {
         }
         pick = photos.random()
         while (true) {
-            delay(180_000L)
+            delay(3_600_000L)
             pick = photos.random()
         }
     }
@@ -409,9 +408,7 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f),
                     )
-                    val extra = scheduleExtraLineForTv(e.notes)
-                    val location = scheduleLocationLineForTv(e.notes)
-                    val trailing = extra ?: location
+                    val trailing = scheduleLocationSuffixForTv(e.notes)
                     if (!trailing.isNullOrBlank()) {
                         Spacer(Modifier.width(8.dp))
                         Text(

@@ -17,6 +17,7 @@ const SHIFT_RE = /^(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})\s*$/;
 const EN_DASH = "\u2013";
 const EXTRA_NOTES_PREFIX = "koti_extra:";
 const JONI_LOCATION_PREFIX = "koti_joni_location:";
+const MAIJA_LOCATION_PREFIX = "koti_maija_location:";
 
 const BEEN_DEFAULT_LS = "kotinaytto_been_shift_v1";
 
@@ -99,6 +100,27 @@ function buildJoniLocationNotes(loc: JoniLocation): string | null {
   return `${JONI_LOCATION_PREFIX}${loc}`;
 }
 
+type MaijaPreset = "" | "arkadia" | "kasarmitori" | "taivallahti";
+
+function parseMaijaFromNotes(notes: string | null): { preset: MaijaPreset; custom: string } {
+  if (!notes || !notes.startsWith(MAIJA_LOCATION_PREFIX)) return { preset: "", custom: "" };
+  try {
+    const obj = JSON.parse(notes.slice(MAIJA_LOCATION_PREFIX.length)) as { preset?: string; custom?: string };
+    const p = (obj.preset ?? "").trim().toLowerCase();
+    const preset: MaijaPreset =
+      p === "arkadia" || p === "kasarmitori" || p === "taivallahti" ? (p as MaijaPreset) : "";
+    return { preset, custom: (obj.custom ?? "").trim() };
+  } catch {
+    return { preset: "", custom: "" };
+  }
+}
+
+function buildMaijaLocationNotes(preset: MaijaPreset, custom: string): string | null {
+  const c = custom.trim();
+  if (!preset && !c) return null;
+  return `${MAIJA_LOCATION_PREFIX}${JSON.stringify({ preset: preset || "", custom: c })}`;
+}
+
 type Draft = {
   start: string;
   end: string;
@@ -108,6 +130,8 @@ type Draft = {
   extraTime: string;
   showExtraOnTv: boolean;
   joniLocation: JoniLocation;
+  maijaPreset: MaijaPreset;
+  maijaCustom: string;
 };
 
 function emptyDraft(): Draft {
@@ -120,6 +144,8 @@ function emptyDraft(): Draft {
     extraTime: "",
     showExtraOnTv: false,
     joniLocation: "",
+    maijaPreset: "",
+    maijaCustom: "",
   };
 }
 
@@ -161,8 +187,18 @@ export default function HallintaWeekSchedulePage() {
         const parsed = parseTitle(row?.title ?? "");
         const extra = parseExtraFromNotes(row?.notes ?? null);
         const joniLocation = parseJoniLocationFromNotes(row?.notes ?? null);
+        const maijaLoc = parseMaijaFromNotes(row?.notes ?? null);
         if (parsed.kind === "free") {
-          next[iso] = { ...emptyDraft(), manualFree: true, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv, joniLocation };
+          next[iso] = {
+            ...emptyDraft(),
+            manualFree: true,
+            extraLabel: extra.label,
+            extraTime: extra.time,
+            showExtraOnTv: extra.showOnTv,
+            joniLocation,
+            maijaPreset: maijaLoc.preset,
+            maijaCustom: maijaLoc.custom,
+          };
         } else if (parsed.kind === "shift") {
           let s = toTimeInput(parsed.a);
           let e = toTimeInput(parsed.b);
@@ -170,7 +206,17 @@ export default function HallintaWeekSchedulePage() {
             s = toTimeInput(defaults.start);
             e = toTimeInput(defaults.end);
           }
-          next[iso] = { ...emptyDraft(), start: s, end: e, extraLabel: extra.label, extraTime: extra.time, showExtraOnTv: extra.showOnTv, joniLocation };
+          next[iso] = {
+            ...emptyDraft(),
+            start: s,
+            end: e,
+            extraLabel: extra.label,
+            extraTime: extra.time,
+            showExtraOnTv: extra.showOnTv,
+            joniLocation,
+            maijaPreset: maijaLoc.preset,
+            maijaCustom: maijaLoc.custom,
+          };
         } else {
           next[iso] = {
             ...emptyDraft(),
@@ -179,6 +225,8 @@ export default function HallintaWeekSchedulePage() {
             extraTime: extra.time,
             showExtraOnTv: extra.showOnTv,
             joniLocation,
+            maijaPreset: maijaLoc.preset,
+            maijaCustom: maijaLoc.custom,
           };
         }
       }
@@ -279,7 +327,9 @@ export default function HallintaWeekSchedulePage() {
             ? buildExtraNotes(d.showExtraOnTv, d.extraLabel, d.extraTime)
             : personSlug === "joni"
               ? buildJoniLocationNotes(d.joniLocation)
-              : null,
+              : personSlug === "maija"
+                ? buildMaijaLocationNotes(d.maijaPreset, d.maijaCustom)
+                : null,
       });
       if (upE) throw upE;
 
@@ -413,6 +463,82 @@ export default function HallintaWeekSchedulePage() {
                           </label>
                         </div>
                       </div>
+                      {personSlug === "maija" && (
+                        <div className="maija-location-block">
+                          <div className="joni-location-row">
+                            <span className="muted">Työpaikka:</span>
+                            <label className="row muted" style={{ gap: 6 }}>
+                              <input
+                                type="checkbox"
+                                disabled={Boolean(drafts[iso]?.manualFree)}
+                                checked={drafts[iso]?.maijaPreset === "arkadia"}
+                                onChange={() =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [iso]: {
+                                      ...(prev[iso] ?? emptyDraft()),
+                                      maijaPreset: prev[iso]?.maijaPreset === "arkadia" ? "" : "arkadia",
+                                    },
+                                  }))
+                                }
+                              />
+                              Arkadia
+                            </label>
+                            <label className="row muted" style={{ gap: 6 }}>
+                              <input
+                                type="checkbox"
+                                disabled={Boolean(drafts[iso]?.manualFree)}
+                                checked={drafts[iso]?.maijaPreset === "kasarmitori"}
+                                onChange={() =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [iso]: {
+                                      ...(prev[iso] ?? emptyDraft()),
+                                      maijaPreset: prev[iso]?.maijaPreset === "kasarmitori" ? "" : "kasarmitori",
+                                    },
+                                  }))
+                                }
+                              />
+                              Kasarmitori
+                            </label>
+                            <label className="row muted" style={{ gap: 6 }}>
+                              <input
+                                type="checkbox"
+                                disabled={Boolean(drafts[iso]?.manualFree)}
+                                checked={drafts[iso]?.maijaPreset === "taivallahti"}
+                                onChange={() =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [iso]: {
+                                      ...(prev[iso] ?? emptyDraft()),
+                                      maijaPreset: prev[iso]?.maijaPreset === "taivallahti" ? "" : "taivallahti",
+                                    },
+                                  }))
+                                }
+                              />
+                              Taivallahti
+                            </label>
+                          </div>
+                          <label className="muted small-label">
+                            Muu / tarkenne (vapaa teksti)
+                            <input
+                              type="text"
+                              placeholder="esim. etäkokous, vierailu…"
+                              value={drafts[iso]?.maijaCustom ?? ""}
+                              disabled={Boolean(drafts[iso]?.manualFree)}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({
+                                  ...prev,
+                                  [iso]: {
+                                    ...(prev[iso] ?? emptyDraft()),
+                                    maijaCustom: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                      )}
                       {personSlug === "joni" && (
                         <div className="joni-location-row" style={{ marginTop: 10 }}>
                           <span className="muted">Paikka:</span>

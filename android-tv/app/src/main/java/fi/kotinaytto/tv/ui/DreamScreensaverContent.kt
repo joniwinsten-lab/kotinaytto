@@ -35,7 +35,7 @@ import fi.kotinaytto.tv.data.currentTemperature
 import fi.kotinaytto.tv.data.currentWeatherCode
 import fi.kotinaytto.tv.data.hourlyForecastChips
 import fi.kotinaytto.tv.data.formatScheduleLineForTv
-import fi.kotinaytto.tv.data.scheduleLocationLineForTv
+import fi.kotinaytto.tv.data.scheduleLocationSuffixForTv
 import fi.kotinaytto.tv.data.toDashboardState
 import fi.kotinaytto.tv.data.todaySunClock
 import fi.kotinaytto.tv.data.todaySunTimesMinutes
@@ -93,7 +93,7 @@ fun DreamScreensaverContent() {
     LaunchedEffect(photos) {
         if (photos.isEmpty()) return@LaunchedEffect
         while (isActive) {
-            delay(35_000L)
+            delay(3_600_000L)
             photoIndex = Random.nextInt(photos.size)
         }
     }
@@ -355,7 +355,7 @@ private fun FamilyHudColumn(state: DashboardState) {
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFCFD8DC),
                     )
-                    val loc = scheduleLocationLineForTv(e.notes)
+                    val loc = scheduleLocationSuffixForTv(e.notes)
                     if (!loc.isNullOrBlank()) {
                         Spacer(Modifier.width(6.dp))
                         Text(
