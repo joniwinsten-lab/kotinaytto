@@ -122,15 +122,15 @@ internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = bottomPad),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = bottomPad),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(
                 modifier = Modifier
                     .weight(1.1f)
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 DashboardHeaderClock(
                     subtitle = state.family?.name,
@@ -139,16 +139,49 @@ internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
                 WeatherCard(state)
             }
 
+            // Ei vieritystä: Been / Maija / Joni jaetaan tasaisesti näytön korkeuteen.
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                ScheduleCard("Been", state.schedules.filter { it.personSlug == "been" })
-                ScheduleCard("Maija", state.schedules.filter { it.personSlug == "maija" })
-                ScheduleCard("Joni", state.schedules.filter { it.personSlug == "joni" })
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    ScheduleCard(
+                        title = "Been",
+                        items = state.schedules.filter { it.personSlug == "been" },
+                        modifier = Modifier.fillMaxSize(),
+                        compact = true,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    ScheduleCard(
+                        title = "Maija",
+                        items = state.schedules.filter { it.personSlug == "maija" },
+                        modifier = Modifier.fillMaxSize(),
+                        compact = true,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    ScheduleCard(
+                        title = "Joni",
+                        items = state.schedules.filter { it.personSlug == "joni" },
+                        modifier = Modifier.fillMaxSize(),
+                        compact = true,
+                    )
+                }
             }
 
             Column(
@@ -156,7 +189,7 @@ internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
                     .weight(0.95f)
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 PhotoOfDayCard(photos = state.photos)
                 ShoppingCard(state.shopping)
@@ -257,19 +290,19 @@ private fun PhotoOfDayCard(photos: List<PhotoDto>) {
     }
 
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Text(
                 text = "Päivän kuva",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(6.dp))
             val photo = pick
             when {
                 photo == null -> {
                     Text(
                         text = "Ei kuvia vielä. Lisää kuvia verkossa.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFB0BEC5),
                     )
                 }
@@ -279,6 +312,7 @@ private fun PhotoOfDayCard(photos: List<PhotoDto>) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .heightIn(max = 150.dp)
                             .aspectRatio(16f / 9f)
                             .clip(RoundedCornerShape(8.dp)),
                     ) {
@@ -310,15 +344,15 @@ private fun WeatherCard(state: DashboardState) {
     val chips = payload?.hourlyForecastChips(zone = helsinki) ?: emptyList()
 
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
-        Column(Modifier.padding(16.dp)) {
-            Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
+        Column(Modifier.padding(12.dp)) {
+            Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
             if (temp != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     WeatherConditionIcon(
                         code = code,
                         isDay = isDay,
-                        modifier = Modifier.size(56.dp),
+                        modifier = Modifier.size(48.dp),
                         tint = Color(0xFFFFB74D),
                     )
                     Spacer(Modifier.width(16.dp))
@@ -383,39 +417,60 @@ private fun WeatherCard(state: DashboardState) {
 }
 
 @Composable
-private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
+private fun ScheduleCard(
+    title: String,
+    items: List<ScheduleEntryDto>,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     val today = LocalDate.now(ZoneId.of("Europe/Helsinki"))
-    val maxDate = today.plusDays(4)
+    // TV-kompaktissa näytetään lyhyempi jotta kaikki mahtuu kerralla.
+    val extraDays = if (compact) 2 else 4
+    val maxDate = today.plusDays(extraDays.toLong())
     val visible = items.filter { e ->
         runCatching { LocalDate.parse(e.entryDate) }
             .map { !it.isBefore(today) && !it.isAfter(maxDate) }
             .getOrDefault(false)
     }.sortedBy { it.entryDate }
 
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
+    val pad = if (compact) 10.dp else 16.dp
+    val titleStyle =
+        if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium
+    val lineStyle =
+        if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall
+    val trailStyle = MaterialTheme.typography.labelSmall
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220)),
+    ) {
+        Column(
+            Modifier
+                .padding(pad)
+                .fillMaxSize(),
+        ) {
+            Text(title, style = titleStyle, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
             visible.forEach { e ->
                 Row(
-                    modifier = Modifier.padding(vertical = 3.dp),
+                    modifier = Modifier.padding(vertical = if (compact) 1.dp else 3.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = formatScheduleLineForTv(e.entryDate, e.title),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = lineStyle,
                         modifier = Modifier.weight(1f),
                     )
                     val trailing = scheduleLocationSuffixForTv(e.notes)
                     if (!trailing.isNullOrBlank()) {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
                         Text(
                             text = trailing,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = trailStyle,
                             color = Color(0xFFB0BEC5),
                             modifier = Modifier.weight(1f),
                         )
@@ -423,7 +478,7 @@ private fun ScheduleCard(title: String, items: List<ScheduleEntryDto>) {
                 }
             }
             if (visible.isEmpty()) {
-                Text("Ei merkintöjä", style = MaterialTheme.typography.bodySmall, color = Color(0xFFB0BEC5))
+                Text("Ei merkintöjä", style = lineStyle, color = Color(0xFFB0BEC5))
             }
         }
     }
@@ -445,17 +500,17 @@ private fun ShoppingCard(items: List<ShoppingItemDto>) {
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
         Column(
             Modifier
-                .padding(16.dp)
-                .heightIn(max = 300.dp)
+                .padding(12.dp)
+                .heightIn(max = 220.dp)
                 .verticalScroll(scroll),
         ) {
-            Text("Kauppalista", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
+            Text("Kauppalista", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
             items.filter { !it.done }.forEach { s ->
                 Text(
                     text = "• ${s.title}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(vertical = 4.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 2.dp),
                 )
             }
             if (items.none { !it.done }) {
@@ -494,18 +549,18 @@ private fun MealsCard(state: DashboardState) {
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xCC0B1220))) {
         Column(
             Modifier
-                .padding(16.dp)
-                .heightIn(max = 320.dp)
+                .padding(12.dp)
+                .heightIn(max = 220.dp)
                 .verticalScroll(scroll),
         ) {
-            Text("Lounaat tällä viikolla", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
+            Text("Lounaat tällä viikolla", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
             state.weeklyMeals.sortedBy { it.dayIndex }.forEach { m ->
                 val label = dayNamesFi.getOrElse(m.dayIndex) { "${m.dayIndex}" }
                 Text(
                     text = "$label: ${m.mealText.ifBlank { "—" }}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 3.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 2.dp),
                 )
             }
             if (state.weeklyMeals.isEmpty()) {
