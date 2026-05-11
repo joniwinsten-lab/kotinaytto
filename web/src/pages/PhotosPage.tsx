@@ -76,7 +76,10 @@ export default function PhotosPage() {
     if (!canEdit) return;
     const urlBase = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!urlBase || !key) return;
+    if (!urlBase || !key) {
+      setError("Supabase-asetukset puuttuvat (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).");
+      return;
+    }
     setBusyDel(photoId);
     setError(null);
     try {
@@ -91,7 +94,14 @@ export default function PhotosPage() {
       });
       if (!res.ok) {
         const txt = await res.text();
-        throw new Error(txt || `HTTP ${res.status}`);
+        let msg = txt || `HTTP ${res.status}`;
+        try {
+          const j = JSON.parse(txt) as { error?: string };
+          if (j.error) msg = j.error;
+        } catch {
+          /* käytä raakatekstiä */
+        }
+        throw new Error(msg);
       }
       await load();
     } catch (e) {

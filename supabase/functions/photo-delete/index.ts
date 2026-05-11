@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  // Hyväksy mikä tahansa perheen editor_token (shared / been / maija / joni), ei vain shared.
   const { data: tokRow, error: tokErr } = await supabase
     .from("editor_tokens")
     .select("family_id")
-    .eq("slug", "shared")
     .eq("secret", token)
     .maybeSingle();
 
@@ -70,10 +70,15 @@ Deno.serve(async (req) => {
 
   const { error: rmErr } = await supabase.storage.from("family_photos").remove([path]);
   if (rmErr) {
-    return new Response(JSON.stringify({ error: rmErr.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const m = rmErr.message.toLowerCase();
+    // Tiedosto voi olla jo poistettu tai polku vanhentunut — metadata kannasta silti pois.
+    const ignorable = m.includes("not found") || m.includes("not_found") || m.includes("no such file");
+    if (!ignorable) {
+      return new Response(JSON.stringify({ error: rmErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   const { error: delErr } = await supabase.from("photos").delete().eq("id", photoId).eq("family_id", familyId);

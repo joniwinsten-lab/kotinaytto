@@ -29,7 +29,6 @@ Deno.serve(async (req) => {
   const { data: row, error: tokErr } = await supabase
     .from("editor_tokens")
     .select("family_id")
-    .eq("slug", "shared")
     .eq("secret", token)
     .maybeSingle();
 
