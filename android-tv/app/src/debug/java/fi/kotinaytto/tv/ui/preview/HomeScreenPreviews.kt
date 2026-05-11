@@ -12,6 +12,7 @@ import fi.kotinaytto.tv.data.WeeklyMealDto
 import fi.kotinaytto.tv.ui.DashboardScreenBody
 import fi.kotinaytto.tv.ui.DreamScreensaverBody
 import fi.kotinaytto.tv.ui.KotiTheme
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -59,7 +60,13 @@ private fun sampleWeatherPayload(): JsonObject {
     }
 }
 
-private fun sampleDashboardState(): DashboardState = DashboardState(
+private fun sampleDashboardState(): DashboardState {
+    val hel = ZoneId.of("Europe/Helsinki")
+    val today = LocalDate.now(hel)
+    val d0 = today.toString()
+    val d1 = today.plusDays(1).toString()
+    val d2 = today.plusDays(2).toString()
+    return DashboardState(
     family = FamilyDto(
         id = "preview",
         name = "Meidän koti",
@@ -71,9 +78,12 @@ private fun sampleDashboardState(): DashboardState = DashboardState(
         ShoppingItemDto(id = "3", title = "Kahvi", done = true, sortOrder = 2),
     ),
     schedules = listOf(
-        ScheduleEntryDto(id = "a", personSlug = "been", entryDate = "2026-05-12", title = "Uinti"),
-        ScheduleEntryDto(id = "b", personSlug = "maija", entryDate = "2026-05-10", title = "Vuoro 10–18"),
-        ScheduleEntryDto(id = "c", personSlug = "joni", entryDate = "2026-05-11", title = "Etänä"),
+        ScheduleEntryDto(id = "a", personSlug = "been", entryDate = d0, title = "08:15–14:15", notes = null),
+        ScheduleEntryDto(id = "a2", personSlug = "been", entryDate = d1, title = "08:15–14:15", notes = """koti_extra:{"showOnTv":true,"label":"Uinti","time":"17:00–18:30"}"""),
+        ScheduleEntryDto(id = "b", personSlug = "maija", entryDate = d0, title = "10:00–18:00", notes = """koti_maija_location:{"preset":"arkadia","custom":"Kokous"}"""),
+        ScheduleEntryDto(id = "b2", personSlug = "maija", entryDate = d2, title = "10:00–18:00", notes = null),
+        ScheduleEntryDto(id = "c", personSlug = "joni", entryDate = d0, title = "09:00–17:00", notes = "koti_joni_location:office"),
+        ScheduleEntryDto(id = "c2", personSlug = "joni", entryDate = d1, title = "09:00–17:00", notes = "koti_joni_location:home"),
     ),
     weeklyMeals = listOf(
         WeeklyMealDto(weekStart = "2026-05-04", dayIndex = 0, mealText = "Kasviscurry"),
@@ -86,9 +96,10 @@ private fun sampleDashboardState(): DashboardState = DashboardState(
         NewsItemDto(id = "n2", source = "YLE", title = "Esimerkki: sää viikonlopulle"),
     ),
     weatherPayload = sampleWeatherPayload(),
-)
+    )
+}
 
-@Preview(name = "Dashboard (TV)", widthDp = 960, heightDp = 540)
+@Preview(name = "Dashboard (TV)", widthDp = 960, heightDp = 540, showBackground = true)
 @Composable
 private fun PreviewDashboardTv() {
     KotiTheme {
