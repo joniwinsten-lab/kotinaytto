@@ -139,7 +139,7 @@ internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
                 WeatherCard(state)
             }
 
-            // Ei vieritystä: Been / Maija / Joni jaetaan tasaisesti näytön korkeuteen.
+            // Ei vieritystä: Bee / Maija / Joni jaetaan tasaisesti näytön korkeuteen.
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -152,7 +152,7 @@ internal fun DashboardScreenBody(state: DashboardState, photoIndex: Int) {
                         .fillMaxWidth(),
                 ) {
                     ScheduleCard(
-                        title = "Been",
+                        title = "Bee",
                         items = state.schedules.filter { it.personSlug == "been" },
                         modifier = Modifier.fillMaxSize(),
                         compact = true,

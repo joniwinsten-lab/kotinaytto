@@ -270,13 +270,13 @@ input[type="file"] {
   margin-top: 10px;
 }
 
-.been-extra-row {
+.bee-extra-row {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 8px;
 }
 
-.been-extra-row > label:last-child {
+.bee-extra-row > label:last-child {
   grid-column: 1 / -1;
 }
 
@@ -314,7 +314,7 @@ input[type="file"] {
     grid-template-columns: 1fr;
   }
 
-  .been-extra-row {
+  .bee-extra-row {
     grid-template-columns: 1fr;
   }
 }

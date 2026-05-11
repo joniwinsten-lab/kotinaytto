@@ -51,7 +51,7 @@ export default function SchedulePage() {
   }, [person]);
 
   const heading = useMemo(() => {
-    if (person === "been") return "Been – koulu";
+    if (person === "been") return "Bee – koulu";
     if (person === "maija") return "Maija – työvuorot";
     if (person === "joni") return "Joni – työpäivät";
     return "Aikataulu";

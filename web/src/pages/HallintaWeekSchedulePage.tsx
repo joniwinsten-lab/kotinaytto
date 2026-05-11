@@ -19,11 +19,11 @@ const EXTRA_NOTES_PREFIX = "koti_extra:";
 const JONI_LOCATION_PREFIX = "koti_joni_location:";
 const MAIJA_LOCATION_PREFIX = "koti_maija_location:";
 
-const BEEN_DEFAULT_LS = "kotinaytto_been_shift_v1";
+const BEE_SHIFT_LS = "kotinaytto_been_shift_v1";
 
-function loadBeenDefaults(): { start: string; end: string } {
+function loadBeeShiftDefaults(): { start: string; end: string } {
   try {
-    const j = JSON.parse(localStorage.getItem(BEEN_DEFAULT_LS) ?? "{}") as { start?: string; end?: string };
+    const j = JSON.parse(localStorage.getItem(BEE_SHIFT_LS) ?? "{}") as { start?: string; end?: string };
     if (j.start && j.end) return { start: j.start, end: j.end };
   } catch {
     /* ignore */
@@ -31,8 +31,8 @@ function loadBeenDefaults(): { start: string; end: string } {
   return { start: "08:00", end: "14:00" };
 }
 
-function saveBeenDefaults(start: string, end: string) {
-  localStorage.setItem(BEEN_DEFAULT_LS, JSON.stringify({ start, end }));
+function saveBeeShiftDefaults(start: string, end: string) {
+  localStorage.setItem(BEE_SHIFT_LS, JSON.stringify({ start, end }));
 }
 
 function parseTitle(title: string): { kind: "free" } | { kind: "shift"; a: string; b: string } | { kind: "legacy"; text: string } {
@@ -179,7 +179,7 @@ export default function HallintaWeekSchedulePage() {
         if (e.person_slug === personSlug) map.set(e.entry_date, e);
       });
       const next: Record<string, Draft> = {};
-      const defaults = loadBeenDefaults();
+      const defaults = loadBeeShiftDefaults();
       for (const iso of dates) {
         const row = map.get(iso);
         const free = isFinnishSundayOrHoliday(iso);
@@ -337,7 +337,7 @@ export default function HallintaWeekSchedulePage() {
       if (personSlug === "been" && dowMon0 >= 0 && dowMon0 <= 4 && !d.legacy.trim()) {
         const s = d.start.trim();
         const en = d.end.trim();
-        if (s && en) saveBeenDefaults(s, en);
+        if (s && en) saveBeeShiftDefaults(s, en);
       }
 
       await load();
@@ -596,7 +596,7 @@ export default function HallintaWeekSchedulePage() {
                         </div>
                       )}
                       {personSlug === "been" && (
-                        <div className="been-extra-row" style={{ marginTop: 10 }}>
+                        <div className="bee-extra-row" style={{ marginTop: 10 }}>
                           <label className="muted small-label">
                             Treenit / muu
                             <input

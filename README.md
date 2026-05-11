@@ -86,7 +86,7 @@ curl -sS -X POST "$PROJECT/functions/v1/sync-weather" \
 
 1. Etusivu `/` → syötä oma **PIN** (Maija **2505**, Joni **0407**, Bee **0304** — vaihdettavissa `editor_pins`-taulussa).
 2. **Maija / Joni:** oma aikataulu (tänään + 7 päivää; sunnuntai + Suomen arkipyhät automaattisesti **Vapaa**), kauppalista, viikon lounaat, kuva-arkisto.
-3. **Bee:** Been aikataulu (sama kalenterilogiikka; arkisin oletusajat muistetaan selaimessa), kauppalista, **lounastoiveet**, kuva-arkisto.
+3. **Bee:** Bee aikataulu (sama kalenterilogiikka; arkisin oletusajat muistetaan selaimessa), kauppalista, **lounastoiveet**, kuva-arkisto.
 4. **Kaikki** voivat lisätä ja poistaa kuvia arkistosta (Edge Function **`photo-delete`**).
 
 Vanhat **token-linkit** löytyvät polusta **`/linkit`** (`?t=` ‑URLit kuten ennen).

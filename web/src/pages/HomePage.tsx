@@ -38,7 +38,7 @@ export default function HomePage() {
       </p>
 
       {tokenOrHint(shared, "/kauppa", "Kauppalista")}
-      {tokenOrHint(been, "/aikataulu/been", "Been – koulu")}
+      {tokenOrHint(been, "/aikataulu/been", "Bee – koulu")}
       {tokenOrHint(maija, "/aikataulu/maija", "Maija – työvuorot")}
       {tokenOrHint(joni, "/aikataulu/joni", "Joni – työpäivät")}
       {tokenOrHint(shared, "/lounaat", "Viikon lounaat ja toiveet")}

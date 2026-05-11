@@ -35,7 +35,7 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
--- Editor tokens (Been / Maija / Joni / shared)
+-- Editor tokens (Bee / Maija / Joni / shared; slug pysyy been)
 -- ---------------------------------------------------------------------------
 
 create table public.editor_tokens (
@@ -560,7 +560,7 @@ select f.id, v.slug, v.lbl
 from public.families f
 cross join (
   values
-    ('been', 'Been'),
+    ('been', 'Bee'),
     ('maija', 'Maija'),
     ('joni', 'Joni'),
     ('shared', 'Yhteinen')
